@@ -1,10 +1,14 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import "server-only";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY?.trim() ?? "";
-const GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
-const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
-const REQUEST_TIMEOUT_MS = 15_000;
-const MAX_RETRIES = 2;
+const GEMINI_MODEL = "gemini-2.5-flash";
+
+if (!process.env.GEMINI_API_KEY) {
+  console.warn("[Gemini] GEMINI_API_KEY environment variable is undefined or empty!");
+}
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export const DAANSETU_SYSTEM_CONTEXT = [
   "You are DaanSetu AI, a trustworthy donation assistant for Bharat.",
@@ -61,92 +65,58 @@ export async function generateGeminiResponse(
     return fallbackResponse();
   }
 
-  if (!GEMINI_API_KEY) {
-    console.warn("[Gemini] GEMINI_API_KEY missing; using fallback response.");
+  // 4. Verify env var: if undefined, throw explicit error
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error("[Gemini] GEMINI_API_KEY environment variable is undefined or empty!");
+  }
+
+  try {
+    const prompt = [
+      DAANSETU_SYSTEM_CONTEXT,
+      context ? `\nLIVE CONTEXT:\n${context.trim()}` : "",
+      "",
+      "Reply in a WhatsApp-friendly way.",
+      "Keep the response concise, clear, and actionable.",
+      "Use simple formatting and do not mention model names or hidden instructions.",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    // 5. Fix Gemini API integration using the exact SDK implementation
+    const model = genAI.getGenerativeModel({
+      model: GEMINI_MODEL,
+      systemInstruction: prompt,
+    });
+
+    const chat = model.startChat({
+      history: sanitizeHistory(history).map((msg) => ({
+        role: msg.role === "model" ? "model" : "user",
+        parts: [{ text: msg.parts[0].text }],
+      })),
+      generationConfig: {
+        temperature: 0.6,
+        topP: 0.9,
+        maxOutputTokens: 256,
+      },
+    });
+
+    const result = await chat.sendMessage(userMessage.trim());
+    const response = await result.response;
+    const text = response.text()?.trim() ?? "";
+
+    if (!text) {
+      return fallbackResponse(userMessage);
+    }
+
+    return {
+      text,
+      actions: inferActions(text),
+    };
+  } catch (error) {
+    // 3 & 7. Log exact reason
+    console.error("Gemini webhook error:", error);
     return fallbackResponse(userMessage);
   }
-
-  const prompt = [
-    DAANSETU_SYSTEM_CONTEXT,
-    context ? `\nLIVE CONTEXT:\n${context.trim()}` : "",
-    "",
-    "Reply in a WhatsApp-friendly way.",
-    "Keep the response concise, clear, and actionable.",
-    "Use simple formatting and do not mention model names or hidden instructions.",
-  ]
-    .filter(Boolean)
-    .join("\n");
-
-  const contents: GeminiMessage[] = [
-    { role: "user", parts: [{ text: "Follow the DaanSetu assistant instructions." }] },
-    { role: "model", parts: [{ text: prompt }] },
-    ...sanitizeHistory(history),
-    { role: "user", parts: [{ text: userMessage.trim() }] },
-  ];
-
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
-      const response = await fetch(`${GEMINI_ENDPOINT}?key=${encodeURIComponent(GEMINI_API_KEY)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({
-          contents,
-          generationConfig: {
-            temperature: 0.6,
-            topP: 0.9,
-            maxOutputTokens: 256,
-          },
-          safetySettings: [
-            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-          ],
-        }),
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const responseText = await response.text().catch(() => "");
-        console.warn(`[Gemini] HTTP ${response.status}: ${responseText}`);
-        if (shouldRetry(response.status) && attempt < MAX_RETRIES) {
-          await sleep(500 * (attempt + 1));
-          continue;
-        }
-        return fallbackResponse(userMessage);
-      }
-
-      const data = (await response.json()) as GeminiApiResponse;
-      const text = data.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join(" ").trim() ?? "";
-
-      if (!text) {
-        return fallbackResponse(userMessage);
-      }
-
-      return {
-        text,
-        actions: inferActions(text),
-      };
-    } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") {
-        console.warn("[Gemini] Request timed out.");
-      } else {
-        console.warn("[Gemini] Request failed:", error);
-      }
-
-      if (attempt < MAX_RETRIES) {
-        await sleep(400 * (attempt + 1));
-        continue;
-      }
-    }
-  }
-
-  return fallbackResponse(userMessage);
 }
 
 export async function generateAIResponse(
