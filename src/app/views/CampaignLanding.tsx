@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -10,6 +10,7 @@ import {
   Download,
   ExternalLink,
   MessageCircle,
+  Send,
   Share2,
   ShieldCheck,
   Sparkles,
@@ -175,7 +176,128 @@ async function downloadPoster(campaign: CampaignDoc, campaignLink: string, upiLi
   URL.revokeObjectURL(url);
 }
 
-// ── Main component ─────────────────────────────────────────────────────────────
+// ── Campaign AI Helper widget ─────────────────────────────────────────────────
+function CampaignAIHelper({ slug, campaignTitle }: { slug: string; campaignTitle: string }) {
+  const [open, setOpen] = useState(false);
+  const [msgs, setMsgs] = useState<Array<{ from: "ai" | "you"; text: string }>>([{
+    from: "ai",
+    text: `Hi! I'm Setu AI 🌿 Ask me anything about this campaign — where your donation goes, how trust is verified, or what impact it creates.`,
+  }]);
+  const [input, setInput] = useState("");
+  const [typing, setTyping] = useState(false);
+  const endRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, typing]);
+
+  const askAI = useCallback(async (raw?: string) => {
+    const text = (raw ?? input).trim();
+    if (!text || typing) return;
+    setMsgs((m) => [...m, { from: "you", text }]);
+    setInput("");
+    setTyping(true);
+    try {
+      const res = await fetch("/api/ai/campaign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, slug }),
+      });
+      const data = await res.json() as { text: string };
+      setMsgs((m) => [...m, { from: "ai", text: data.text ?? "Let me check that for you!" }]);
+    } catch {
+      setMsgs((m) => [...m, { from: "ai", text: "I'm temporarily unavailable. Please try again shortly." }]);
+    } finally {
+      setTyping(false);
+    }
+  }, [input, typing, slug]);
+
+  const QUICK_QS = ["Where does my donation go?", "How is this campaign verified?", "What's the impact of ₹500?"];
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="w-full flex items-center gap-3 px-5 py-4 rounded-2xl border border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50 transition shadow-sm"
+      >
+        <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: "radial-gradient(circle at 30% 30%, #8FEAC4, #0F8F5F)" }}>
+          <Sparkles className="w-4 h-4 text-white" />
+        </div>
+        <div className="text-left flex-1">
+          <div className="text-sm font-semibold" style={{ color: "#1F2937" }}>Ask Setu AI about this campaign</div>
+          <div className="text-xs" style={{ color: "#6B7280" }}>Powered by Google Gemini · answers in seconds</div>
+        </div>
+        <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: "#E8F5EE", color: "#0F8F5F" }}>GEMINI</span>
+      </button>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100" style={{ backgroundColor: "#FAFAF8" }}>
+        <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: "radial-gradient(circle at 30% 30%, #8FEAC4, #0F8F5F)" }}>
+          <Sparkles className="w-3.5 h-3.5 text-white" />
+        </div>
+        <span className="text-sm font-semibold flex-1" style={{ color: "#1F2937" }}>Setu AI — Campaign Helper</span>
+        <button onClick={() => setOpen(false)} className="text-xs px-2 py-1 rounded-lg hover:bg-slate-100" style={{ color: "#6B7280" }}>Close</button>
+      </div>
+
+      <div className="px-4 py-4 space-y-3 max-h-72 overflow-y-auto">
+        {msgs.map((m, i) => (
+          <div key={i} className={`flex gap-2 ${m.from === "you" ? "justify-end" : ""}`}>
+            {m.from === "ai" && (
+              <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "radial-gradient(circle at 30% 30%, #8FEAC4, #0F8F5F)" }}>
+                <Sparkles className="w-3 h-3 text-white" />
+              </div>
+            )}
+            <div
+              className="max-w-[82%] text-xs rounded-xl px-3 py-2 leading-relaxed"
+              style={m.from === "you"
+                ? { backgroundColor: "#0F8F5F", color: "white" }
+                : { backgroundColor: "#F1F5F9", color: "#1F2937" }}
+            >
+              {m.text}
+            </div>
+          </div>
+        ))}
+        {typing && (
+          <div className="flex gap-2">
+            <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ background: "radial-gradient(circle at 30% 30%, #8FEAC4, #0F8F5F)" }}>
+              <Sparkles className="w-3 h-3 text-white" />
+            </div>
+            <div className="bg-slate-100 rounded-xl px-3 py-2 flex gap-1">
+              {[0,1,2].map((i) => <span key={i} className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: "#0F8F5F", animationDelay: `${i * 0.12}s` }} />)}
+            </div>
+          </div>
+        )}
+        <div ref={endRef} />
+      </div>
+
+      <div className="px-3 pb-2 flex flex-wrap gap-1.5">
+        {QUICK_QS.map((q) => (
+          <button key={q} onClick={() => askAI(q)} className="text-xs px-2.5 py-1 rounded-full border border-slate-200 hover:bg-emerald-50 transition" style={{ color: "#4B5563" }}>{q}</button>
+        ))}
+      </div>
+
+      <div className="border-t border-slate-100 p-2 flex gap-2">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && askAI()}
+          placeholder="Ask about this campaign…"
+          className="flex-1 text-xs px-3 py-2 rounded-xl border border-slate-200 outline-none focus:border-emerald-400"
+        />
+        <button
+          onClick={() => askAI()}
+          disabled={typing || !input.trim()}
+          className="px-3 py-2 rounded-xl text-white disabled:opacity-50 transition"
+          style={{ backgroundColor: "#0F8F5F" }}
+        >
+          <Send className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 
 export function CampaignLanding({ slug }: { slug: string }) {
   const { campaign, loading, notFound } = useCampaignBySlug(slug);
@@ -409,6 +531,9 @@ export function CampaignLanding({ slug }: { slug: string }) {
                 </ol>
               </div>
             )}
+
+            {/* AI Campaign Helper */}
+            <CampaignAIHelper slug={slug} campaignTitle={campaign.title} />
 
             {/* Share card */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
