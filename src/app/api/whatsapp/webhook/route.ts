@@ -88,6 +88,11 @@ export async function POST(request: Request) {
   const sessionId = phone || messageSid;
   const sessionRef = doc(serverDb, COL.CHAT_SESSIONS, sessionId);
 
+  // Diagnostic logging for production debugging
+  console.log("[Webhook] Incoming WhatsApp message:", { phone: maskPhone(phone), profileName, messageSid, bodyLength: message.length });
+  console.log("[Webhook] Gemini key exists:", !!process.env.GEMINI_API_KEY);
+  console.log("[Webhook] TWILIO_AUTH_TOKEN set:", !!process.env.TWILIO_AUTH_TOKEN);
+
   const sessionSnap = await getDoc(sessionRef).catch(() => null);
   const sessionData = sessionSnap?.exists() ? (sessionSnap.data() as Record<string, unknown>) : null;
   const state = normalizeState(sessionData?.state);
@@ -684,20 +689,33 @@ function twimlResponse(message: string) {
 
 function isValidTwilioRequest(request: Request, params: URLSearchParams): boolean {
   const authToken = process.env.TWILIO_AUTH_TOKEN;
-  if (!authToken) return true;
+  if (!authToken) {
+    console.warn("[Webhook] TWILIO_AUTH_TOKEN not set — skipping signature validation (dev mode)");
+    return true;
+  }
 
   const signature = request.headers.get("x-twilio-signature");
-  if (!signature) return false;
+  if (!signature) {
+    console.error("[Webhook] Missing x-twilio-signature header — rejecting request");
+    return false;
+  }
 
+  // Use configured APP_URL as canonical base — must match exactly what's in Twilio console
   const webhookUrl = `${APP_URL}/api/whatsapp/webhook`;
+  console.log("[Webhook] Validating signature against URL:", webhookUrl);
 
   try {
     const expected = crypto
       .createHmac("sha1", authToken)
       .update(buildTwilioSignaturePayload(webhookUrl, params))
       .digest("base64");
-    return timingSafeEqual(signature, expected);
-  } catch {
+    const valid = timingSafeEqual(signature, expected);
+    if (!valid) {
+      console.error("[Webhook] Signature mismatch — expected:", expected.slice(0, 8) + "...", "got:", signature.slice(0, 8) + "...");
+    }
+    return valid;
+  } catch (err) {
+    console.error("[Webhook] Signature validation error:", err);
     return false;
   }
 }
