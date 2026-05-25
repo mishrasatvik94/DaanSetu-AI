@@ -95,7 +95,22 @@ export async function POST(request: Request) {
   const selectedCampaign = normalizeCampaign(sessionData?.selectedCampaign);
   const storedHistory = normalizeHistory(sessionData?.messages);
   const userHistory = toGeminiHistory(storedHistory);
-  const intent = detectIntent(normalized);
+  let intent = detectIntent(normalized);
+
+  // Dynamic numeric and menu routing in idle state
+  if (state === "idle" || !state) {
+    if (normalized === "1" || normalized === "donate" || normalized === "donate now") {
+      intent = "donate";
+    } else if (normalized === "2" || normalized === "impact" || normalized === "community plate") {
+      intent = "campaign";
+    } else if (normalized === "3" || normalized === "ngo" || normalized === "ngos") {
+      intent = "ngo";
+    } else if (normalized === "4" || normalized === "track" || normalized === "pickup") {
+      intent = "help";
+    } else if (normalized === "5" || normalized === "help" || normalized === "ai help") {
+      intent = "help";
+    }
+  }
 
   const persistSession = async (aiResponse: string, nextState: BotState, extras: Record<string, unknown> = {}) => {
     const nextHistory = [
@@ -128,7 +143,17 @@ export async function POST(request: Request) {
   };
 
   const respond = async (aiResponse: string, nextState: BotState, extras: Record<string, unknown> = {}) => {
-    const text = sanitizeReply(aiResponse);
+    let slug = "aanya-1000-meals";
+    if (extras.selectedCampaign && typeof extras.selectedCampaign === "object") {
+      slug = (extras.selectedCampaign as { slug?: string }).slug ?? slug;
+    } else if (extras.pendingCampaigns && Array.isArray(extras.pendingCampaigns) && extras.pendingCampaigns.length > 0) {
+      slug = (extras.pendingCampaigns[0] as { slug?: string }).slug ?? slug;
+    } else if (pendingCampaigns.length > 0) {
+      slug = pendingCampaigns[0].slug;
+    }
+
+    const formattedResponse = formatWhatsAppResponse(aiResponse, nextState, slug);
+    const text = sanitizeReply(formattedResponse);
     await persistSession(text, nextState, extras);
     return twimlResponse(text);
   };
@@ -695,4 +720,44 @@ function buildTwiML(message: string): string {
 
 function escapeXml(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+}
+
+function formatWhatsAppResponse(responseText: string, nextState: BotState, campaignSlug = "aanya-1000-meals"): string {
+  const directLink = `${APP_URL}/campaign/${campaignSlug}`;
+
+  if (nextState === "awaiting_campaign_selection") {
+    return [
+      responseText,
+      "",
+      "━━━━━━━━━━━━━━━━━━━",
+      "👉 *Reply with 1, 2, or 3 to choose a campaign*",
+      "Or reply *HELP* to return to the main menu.",
+      "━━━━━━━━━━━━━━━━━━━"
+    ].join("\n");
+  }
+
+  if (nextState === "awaiting_amount") {
+    return responseText;
+  }
+
+  // General or Idle state: append the complete premium interactive menu!
+  return [
+    responseText,
+    "",
+    "━━━━━━━━━━━━━━━━━━━",
+    "🙏 *Namaste from DaanSetu*",
+    "",
+    "How can I help? Reply with a number or keyword:",
+    "1️⃣ *DONATE* — Active verified campaigns",
+    "2️⃣ *IMPACT* — Live plate count & snapshot",
+    "3️⃣ *NGO* — Verified community kitchens",
+    "4️⃣ *TRACK* — Volunteer pickups & schedules",
+    "5️⃣ *HELP* — Talk to DaanSetu AI assistant",
+    "",
+    "🔗 *Direct Campaign Link:*",
+    directLink,
+    "━━━━━━━━━━━━━━━━━━━",
+    "",
+    "Reply with *DONATE*, *IMPACT*, *NGO*, *TRACK*, or *HELP*."
+  ].join("\n");
 }

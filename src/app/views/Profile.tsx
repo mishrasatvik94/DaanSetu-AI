@@ -147,7 +147,7 @@ export function Profile() {
                 ) : campaigns.map((campaign) => {
                   const cpct = Math.min(100, Math.round((campaign.raised / campaign.goal) * 100));
                   return (
-                    <Link key={campaign.slug} href={`/qr-campaign/${campaign.slug}`} className="rounded-xl border border-slate-200 p-4 hover:bg-slate-50 transition">
+                    <Link key={campaign.slug} href={`/campaign/${campaign.slug}`} className="rounded-xl border border-slate-200 p-4 hover:bg-slate-50 transition">
                       <div className="flex items-center gap-2 text-xs" style={{ color: "#0F8F5F" }}>
                         <QrCode className="w-3.5 h-3.5" /> Campaign
                       </div>

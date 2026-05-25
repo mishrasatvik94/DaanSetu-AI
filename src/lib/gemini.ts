@@ -1,7 +1,7 @@
 import "server-only";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY?.trim() ?? "";
-const GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || "gemini-1.5-flash";
+const GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 const REQUEST_TIMEOUT_MS = 15_000;
 const MAX_RETRIES = 2;

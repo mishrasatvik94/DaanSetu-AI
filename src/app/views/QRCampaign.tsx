@@ -92,7 +92,7 @@ export function QRCampaign() {
                 return (
                   <Link
                     key={slug}
-                    href={`/qr-campaign/${slug}`}
+                    href={`/campaign/${slug}`}
                     className="rounded-2xl border border-slate-200 bg-white p-6 hover:shadow-[0_12px_32px_-16px_rgba(15,143,95,0.25)] transition flex flex-col"
                   >
                     <div className="text-xs tracking-wider" style={{ color: "#0F8F5F" }}>FEATURED DRIVE</div>
@@ -121,7 +121,7 @@ export function QRCampaign() {
           onClose={() => setOpen(false)}
           onCreated={(c) => {
             setOpen(false);
-            router.push(`/qr-campaign/${c.slug}`);
+            router.push(`/campaign/${c.slug}`);
           }}
         />
       )}

@@ -41,21 +41,19 @@ export function generateUpiLink(options: UpiLinkOptions = {}): string {
   const { amount, payeeName = DEFAULT_PAYEE_NAME, note, upiId } = options;
   const pa = upiId ?? getUpiId();
 
-  const params = new URLSearchParams({
-    pa,
-    pn: payeeName,
-    cu: "INR",
-  });
+  const parts = [
+    `pa=${encodeURIComponent(pa)}`,
+    `pn=${encodeURIComponent(payeeName)}`,
+    `tn=${encodeURIComponent(note ?? "Donation")}`,
+  ];
 
   if (amount != null && Number.isFinite(amount) && amount > 0) {
-    params.set("am", String(Math.round(amount)));
+    parts.push(`am=${encodeURIComponent(String(Math.round(amount)))}`);
   }
 
-  if (note) {
-    params.set("tn", note.slice(0, 100));
-  }
+  parts.push(`cu=INR`);
 
-  return `upi://pay?${params.toString()}`;
+  return `upi://pay?${parts.join("&")}`;
 }
 
 /**
@@ -97,18 +95,24 @@ export function buildWhatsAppShareText(params: {
   title: string;
   raised: number;
   goal: number;
-  trustScore: number;
+  ngoName?: string;
   campaignUrl: string;
-  upiLink: string;
 }): string {
-  const { title, raised, goal, trustScore, campaignUrl, upiLink } = params;
-  return (
-    `🙏 Support this verified DaanSetu campaign\n\n` +
-    `Campaign: ${title}\n` +
-    `Raised: ₹${raised.toLocaleString("en-IN")} / ₹${goal.toLocaleString("en-IN")}\n` +
-    `Trust Score: ${trustScore}/100\n\n` +
-    `Donate here:\n${campaignUrl}\n\n` +
-    `UPI:\n${upiLink}\n\n` +
-    `✅ Verified by DaanSetu`
-  );
+  const { title, raised, goal, ngoName = "DaanSetu Verified NGO", campaignUrl } = params;
+  const upiId = getUpiId();
+  return [
+    "━━━━━━━━━━",
+    "🙏 *DaanSetu Verified Campaign*",
+    `📍 *Campaign:* ${title}`,
+    `🏢 *NGO:* ${ngoName}`,
+    `🎯 *Goal:* ₹${goal.toLocaleString("en-IN")}`,
+    `💚 *Raised:* ₹${raised.toLocaleString("en-IN")}`,
+    "",
+    "🔗 *Donate:*",
+    campaignUrl,
+    "",
+    "📱 *UPI:*",
+    upiId,
+    "━━━━━━━━━━"
+  ].join("\n");
 }

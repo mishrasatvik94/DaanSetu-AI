@@ -19,7 +19,7 @@ export function PersonalCard({ c }: { c: PersonalCampaign }) {
     .slice(0, 2)
     .join("") || "D";
   return (
-    <Link href={`/qr-campaign/${c.slug}`} className="rounded-2xl border border-slate-200 bg-white p-6 hover:shadow-[0_12px_32px_-16px_rgba(15,143,95,0.25)] transition flex flex-col">
+    <Link href={`/campaign/${c.slug}`} className="rounded-2xl border border-slate-200 bg-white p-6 hover:shadow-[0_12px_32px_-16px_rgba(15,143,95,0.25)] transition flex flex-col">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm" style={{ backgroundColor: "#E8F5EE", color: "#0F8F5F", fontWeight: 600 }}>
           {initials}

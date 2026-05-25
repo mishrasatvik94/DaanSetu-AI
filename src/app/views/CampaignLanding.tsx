@@ -71,7 +71,7 @@ function AmountBtn({ value, selected, onSelect }: { value: number; selected: boo
 }
 
 // ── Poster download (html-to-image via canvas fallback) ───────────────────────
-async function downloadPoster(campaign: CampaignDoc, campaignLink: string, upiLink: string) {
+async function downloadPoster(campaign: CampaignDoc, campaignLink: string, upiLink: string, campaignQrUrl: string, upiQrUrl: string) {
   // Build a minimal SVG poster we can download without external deps
   const pct = Math.min(100, Math.round(((campaign.raised ?? 0) / (campaign.goal || 1)) * 100));
   const score = campaign.trustScore ?? 82;
@@ -143,15 +143,15 @@ async function downloadPoster(campaign: CampaignDoc, campaignLink: string, upiLi
 
   <!-- Campaign QR placeholder area -->
   <rect x="80" y="595" width="270" height="240" rx="16" fill="#F9FAFB" stroke="#E5E7EB" stroke-width="1.5"/>
-  <text x="215" y="645" font-size="11" fill="#6B7280" text-anchor="middle">CAMPAIGN PAGE QR</text>
-  <text x="215" y="785" font-size="10" fill="#9CA3AF" text-anchor="middle">${campaignLink.slice(0, 40)}</text>
-  <text x="215" y="800" font-size="10" fill="#9CA3AF" text-anchor="middle">Scan to visit campaign</text>
+  <text x="215" y="625" font-size="11" font-weight="bold" fill="#6B7280" text-anchor="middle">CAMPAIGN PAGE QR</text>
+  <image x="140" y="640" width="150" height="150" href="${campaignQrUrl}"/>
+  <text x="215" y="810" font-size="10" fill="#9CA3AF" text-anchor="middle">Scan to visit campaign</text>
 
   <!-- UPI QR placeholder area -->
   <rect x="450" y="595" width="270" height="240" rx="16" fill="#F0FDF4" stroke="#0F8F5F" stroke-width="1.5"/>
-  <text x="585" y="645" font-size="11" fill="#0F8F5F" text-anchor="middle">DIRECT UPI PAYMENT QR</text>
-  <text x="585" y="785" font-size="10" fill="#9CA3AF" text-anchor="middle">mishrasatvik94@okicici</text>
-  <text x="585" y="800" font-size="10" fill="#9CA3AF" text-anchor="middle">Google Pay · PhonePe · Paytm</text>
+  <text x="585" y="625" font-size="11" font-weight="bold" fill="#0F8F5F" text-anchor="middle">DIRECT UPI PAYMENT QR</text>
+  <image x="510" y="640" width="150" height="150" href="${upiQrUrl}"/>
+  <text x="585" y="810" font-size="10" fill="#9CA3AF" text-anchor="middle">Google Pay · PhonePe · Paytm</text>
 
   <!-- Trust badges -->
   <rect x="60" y="860" width="680" height="1" fill="#E5E7EB"/>
@@ -175,6 +175,7 @@ async function downloadPoster(campaign: CampaignDoc, campaignLink: string, upiLi
   a.click();
   URL.revokeObjectURL(url);
 }
+
 
 // ── Campaign AI Helper widget ─────────────────────────────────────────────────
 function CampaignAIHelper({ slug, campaignTitle }: { slug: string; campaignTitle: string }) {
@@ -338,9 +339,8 @@ export function CampaignLanding({ slug }: { slug: string }) {
       title: campaign.title,
       raised: campaign.raised ?? 0,
       goal: campaign.goal ?? 0,
-      trustScore: score,
+      ngoName: campaign.ngoName ?? "DaanSetu Verified NGO",
       campaignUrl: campaignLink,
-      upiLink: generateUpiLink({ amount: 500 }),
     });
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
   }
@@ -353,8 +353,8 @@ export function CampaignLanding({ slug }: { slug: string }) {
       setDonated(true);
       setTimeout(() => setDonated(false), 3000);
     } catch { /* fire-and-forget */ }
-    // Open UPI deep link
-    window.open(generateUpiLink({ amount: effectiveAmount, note: campaign.title }), "_blank");
+    // Open UPI deep link directly in same tab to trigger native app launcher smoothly
+    window.location.href = generateUpiLink({ amount: effectiveAmount, note: campaign.title });
     setDonating(false);
   }
 
@@ -562,7 +562,7 @@ export function CampaignLanding({ slug }: { slug: string }) {
                 </button>
                 <button
                   id="btn-download-poster"
-                  onClick={() => downloadPoster(campaign, campaignLink, upiLink)}
+                  onClick={() => downloadPoster(campaign, campaignLink, upiLink, campaignQrUrl, upiQrUrl)}
                   className="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition"
                   style={{ color: "#1F2937" }}
                 >

@@ -32,14 +32,13 @@ function createCampaignId(title: string) {
 }
 
 export function campaignUrl(campaignId: string) {
-  return `${getBaseUrl()}/qr-campaign/${encodeURIComponent(campaignId)}`;
+  return `${getBaseUrl()}/campaign/${encodeURIComponent(campaignId)}`;
 }
 
 export function buildUpiDeepLink(amount: number) {
-  const upiId = process.env.NEXT_PUBLIC_UPI_ID?.trim();
-  if (!upiId) return "";
+  const upiId = process.env.NEXT_PUBLIC_UPI_ID?.trim() || "mishrasatvik94@okicici";
   const safeAmount = Number.isFinite(amount) && amount > 0 ? Math.round(amount) : 1;
-  return `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent("DaanSetu")}&am=${encodeURIComponent(String(safeAmount))}&cu=INR`;
+  return `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent("DaanSetu")}&tn=${encodeURIComponent("Donation")}&am=${encodeURIComponent(String(safeAmount))}&cu=INR`;
 }
 
 export function buildUpiQrUrl(amount: number, size = 240) {
