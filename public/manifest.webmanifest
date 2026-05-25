@@ -1,0 +1,26 @@
+{
+  "name": "DaanSetu — From extra food to full plates",
+  "short_name": "DaanSetu",
+  "description": "Donate surplus food in minutes. WhatsApp + AI route every meal to verified NGOs nearby.",
+  "id": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "theme_color": "#0F8F5F",
+  "background_color": "#FAFAF8",
+  "lang": "en-IN",
+  "dir": "ltr",
+  "categories": ["food", "social", "lifestyle", "productivity"],
+  "icons": [
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icons/icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Donate now", "short_name": "Donate", "description": "Open Setu AI to donate surplus food", "url": "/ai-assistant?source=shortcut" },
+    { "name": "My KarmaScore", "short_name": "Karma", "description": "See your KarmaScore and badges", "url": "/karma?source=shortcut" },
+    { "name": "Live impact", "short_name": "Impact", "description": "Real-time donation feed", "url": "/dashboard?source=shortcut" }
+  ],
+  "prefer_related_applications": false
+}

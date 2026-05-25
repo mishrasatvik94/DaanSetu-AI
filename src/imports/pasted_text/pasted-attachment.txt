@@ -1,0 +1,309 @@
+Redesign the existing DaanSetu frontend completely.
+
+IMPORTANT:
+Do NOT create a generic NGO donation website.
+Do NOT create a basic SaaS landing page.
+Do NOT create a clean-but-boring template.
+
+This must look like a hackathon-winning, investor-ready, premium startup product.
+
+Current design direction is too safe and looks like a food donation website.
+
+We are repositioning DaanSetu as:
+
+"India’s first gamified social impact platform."
+
+Core features:
+- KarmaScore™ (social impact reputation score)
+- QR Kindness (personal fundraising QR campaigns)
+- WhatsApp-first donations
+- AI cause matching
+- live impact dashboard
+- leaderboard
+- social share impact cards
+
+Design inspiration:
+Stripe
+Linear
+Apple
+CRED
+Arc Browser
+Vercel
+Ramp
+Framer
+
+VISUAL GOAL:
+User should immediately think:
+“this is a premium startup product.”
+
+NOT:
+“charity NGO website”
+
+==================================================
+GLOBAL REDESIGN RULES
+==================================================
+
+Use:
+- dark premium fintech aesthetic
+- glassmorphism
+- floating UI layers
+- glowing gradients
+- smooth depth
+- premium dashboard cards
+- subtle motion cues
+- futuristic but trustworthy visuals
+
+Palette:
+Background:
+#0A0F1C
+
+Primary:
+emerald / teal gradient
+
+Accent:
+purple / cyan glow
+
+Text:
+high contrast white / slate
+
+Typography:
+Inter / SF Pro / Satoshi
+
+NO beige NGO colors.
+NO plain white startup template.
+NO boring cards.
+
+==================================================
+LANDING PAGE REDESIGN
+==================================================
+
+COMPLETELY REBUILD HERO SECTION.
+
+Current hero is too weak.
+
+Replace food donation messaging.
+
+NEW HERO:
+
+Headline:
+"Turn kindness into a movement."
+
+Subheadline:
+"Donate through WhatsApp, build your KarmaScore™, launch QR fundraising campaigns, and make your impact visible."
+
+Primary CTA:
+Start Your Impact
+
+Secondary CTA:
+Generate My QR
+
+Hero layout:
+LEFT:
+powerful messaging
+
+RIGHT:
+massive premium floating UI composition
+
+Hero composition MUST include:
+
+1. WhatsApp donation mockup
+conversation:
+HI
+→ Welcome to DaanSetu
+
+DONATE EDUCATION 500
+→ Donation successful
+→ KarmaScore +50
+→ Receipt generated
+
+2. KarmaScore widget
+show:
+KarmaScore™
+860
+Hero Badge 🏆
+Top 12% Changemakers
+
+3. QR fundraising widget
+show:
+Satvik’s QR Campaign
+₹12,400 raised
+QR code preview
+
+4. mini leaderboard widget
+#1 Satvik
+#2 Rahul
+#3 Priya
+
+5. live donation ticker
+"Aman donated ₹500"
+
+Hero must feel explosive and visually premium.
+
+==================================================
+SECTIONS TO ADD
+==================================================
+
+SECTION: TRUST BAR
+Verified NGOs
+Secure Donations
+WhatsApp Powered
+Real-time Impact
+
+SECTION: ANIMATED STATS
+₹2.4L raised
+1200 meals funded
+85 changemakers
+340 QR campaigns
+
+==================================================
+KARMASCORE SECTION
+==================================================
+
+This must be flagship feature.
+
+Make it visually insane.
+
+Create futuristic gamification dashboard.
+
+Show:
+score breakdown:
++ donation amount
++ causes supported
++ QR donations raised
++ referrals
++ volunteer participation
++ badges
+
+Levels:
+🌱 Seed
+🤝 Helper
+❤️ Changemaker
+🏆 Hero
+👑 Legend
+
+Use:
+glow rings
+progress bars
+unlock animations
+premium score cards
+
+This should feel like Duolingo + GitHub + CRED.
+
+==================================================
+QR KINDNESS SECTION
+==================================================
+
+Headline:
+"Your personal fundraising identity."
+
+Show:
+premium mobile mockup
+
+profile:
+avatar
+name
+KarmaScore
+QR code
+amount raised
+causes supported
+donate CTA
+
+This section must scream virality.
+
+==================================================
+SOCIAL FLEX SECTION
+==================================================
+
+Show share cards:
+LinkedIn
+Instagram story
+WhatsApp
+
+Examples:
+"I reached KarmaScore 720 ❤️"
+"Funded 40 meals this month"
+
+Cards should look highly premium.
+
+==================================================
+WHATSAPP SECTION
+==================================================
+
+Massive WhatsApp showcase.
+
+Should look like product demo.
+
+Not just screenshots.
+
+==================================================
+LEADERBOARD SECTION
+==================================================
+
+Gamified leaderboard.
+
+Top changemakers.
+
+Competitive premium layout.
+
+==================================================
+AI MATCHING SECTION
+==================================================
+
+Chat-style AI recommendation.
+
+User:
+"I care about street animals"
+
+AI:
+"Recommended: dog vaccination drive"
+
+==================================================
+LIVE DASHBOARD PREVIEW
+==================================================
+
+Dark analytics dashboard.
+
+Metrics:
+total donations
+active campaigns
+cause split
+live feed
+top donors
+
+==================================================
+MICROINTERACTIONS
+==================================================
+
+Add:
+hover glows
+floating motion
+animated counters
+soft transitions
+depth
+glass blur
+loading shimmer
+
+==================================================
+OUTPUT REQUIREMENTS
+==================================================
+
+Create complete redesigned frontend screens.
+
+Must include:
+Landing
+NGO listing
+NGO details
+Donor profile
+QR fundraiser page
+Leaderboard
+Dashboard
+
+Tech target:
+Next.js
+Tailwind
+Framer Motion
+TypeScript
+shadcn/ui
+
+GOAL:
+10/10 hackathon-winning frontend.

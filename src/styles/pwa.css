@@ -1,0 +1,68 @@
+/* PWA / native-app behavior */
+
+:root {
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom);
+  --safe-left: env(safe-area-inset-left);
+  --safe-right: env(safe-area-inset-right);
+}
+
+html, body {
+  /* Prevent rubber-band overscroll on iOS PWA */
+  overscroll-behavior-y: contain;
+  /* Disable text size auto-adjust on rotation in iOS */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  /* Disable the iOS callout that pops up on long-press */
+  -webkit-touch-callout: none;
+  /* Disable tap highlight, we use our own focus rings */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Allow text selection inside inputs / content blocks */
+input, textarea, [contenteditable="true"], p, h1, h2, h3, h4, h5, h6, li, td, .selectable {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* Make buttons and links feel native: no double-tap zoom delay */
+button, a, [role="button"] { touch-action: manipulation; }
+
+/* Hide focus rings only when the user is interacting with touch/mouse */
+:focus:not(:focus-visible) { outline: none; }
+
+/* When installed as a PWA, pad the top safe area so nothing hides under notches */
+@media all and (display-mode: standalone), all and (display-mode: window-controls-overlay) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    /* Lock the bg to brand to avoid white peeking when scrolling past bounds */
+    background-color: #FAFAF8;
+  }
+  /* Slightly tighter nav in standalone */
+  nav.sticky { backdrop-filter: saturate(180%) blur(16px); }
+}
+
+/* Splash-style fade-in on first paint */
+@keyframes daansetu-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+main { animation: daansetu-fade-in 240ms ease-out both; }
+
+/* Pull-to-refresh visual cue (purely CSS) */
+.pwa-pull-hint {
+  position: sticky; top: 0; height: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(15,143,95,0.08), transparent);
+}
+
+/* Native-style scrollbars on desktop */
+@media (pointer: fine) {
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+  *::-webkit-scrollbar-thumb:hover { background: #CBD5E1; background-clip: padding-box; border: 2px solid transparent; }
+}

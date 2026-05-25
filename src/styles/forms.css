@@ -1,0 +1,16 @@
+/* Shared form primitives used by a few modals/pages */
+
+.input {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #E5E7EB;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  outline: none;
+  color: #1F2937;
+  background: #fff;
+}
+
+.input:focus {
+  border-color: #CBD5E1;
+}
