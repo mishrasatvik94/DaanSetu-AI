@@ -1,8 +1,8 @@
 /**
  * POST /api/ai/chat
  *
- * Server-side Gemini-powered chat endpoint for the DaanSetu AI Assistant.
- * Keeps GEMINI_API_KEY server-side only.
+ * Server-side Gemini chat endpoint for the DaanSetu AI Assistant.
+ * GEMINI_API_KEY never leaves the server.
  */
 
 import { NextResponse } from "next/server";
@@ -13,7 +13,6 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
-  // Rate limit by IP
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     request.headers.get("x-real-ip") ??
@@ -46,7 +45,7 @@ export async function POST(request: Request) {
     );
   }
 
-  // Build live platform context from Firebase
+  // Build live platform context from Firebase (non-blocking)
   let context = "";
   try {
     const [campaigns, ngos] = await Promise.all([
@@ -73,7 +72,7 @@ export async function POST(request: Request) {
     console.warn("[AI Chat] Failed to fetch platform context:", err);
   }
 
-  // Sanitize history (max 10 turns to control token usage)
+  // Sanitize history
   const sanitizedHistory = history
     .slice(-10)
     .filter((m): m is GeminiMessage =>
@@ -87,10 +86,15 @@ export async function POST(request: Request) {
     const response = await generateAIResponse(message.trim(), context || undefined, sanitizedHistory);
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
-    console.error("Gemini chat route error:", error);
-    return NextResponse.json({
-      text: "Namaste 🙏 DaanSetu AI is temporarily busy. Please try again shortly.",
-      error: true
-    }, { status: 200 });
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error("[AI Chat] Gemini failed:", errMsg);
+    return NextResponse.json(
+      {
+        text: "Namaste 🙏 DaanSetu AI is temporarily busy. Please try again shortly.",
+        error: true,
+        _debug: errMsg,
+      },
+      { status: 200 }
+    );
   }
 }

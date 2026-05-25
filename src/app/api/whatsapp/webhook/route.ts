@@ -6,7 +6,7 @@ import { addDoc, collection, doc, getDoc, getDocs, orderBy, query, serverTimesta
 import { serverDb } from "@/lib/firebase-server";
 import { COL } from "@/lib/firestore-service";
 import { NGOS } from "@/app/data/ngos";
-import { DAANSETU_SYSTEM_CONTEXT, generateGeminiResponse, checkRateLimit, type GeminiMessage } from "@/lib/gemini";
+import { DAANSETU_SYSTEM_CONTEXT, generateGeminiResponse, type GeminiMessage } from "@/lib/gemini";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -92,6 +92,8 @@ export async function POST(request: Request) {
   console.log("[Webhook] Incoming WhatsApp message:", { phone: maskPhone(phone), profileName, messageSid, bodyLength: message.length });
   console.log("[Webhook] Gemini key exists:", !!process.env.GEMINI_API_KEY);
   console.log("[Webhook] TWILIO_AUTH_TOKEN set:", !!process.env.TWILIO_AUTH_TOKEN);
+
+  try {
 
   const sessionSnap = await getDoc(sessionRef).catch(() => null);
   const sessionData = sessionSnap?.exists() ? (sessionSnap.data() as Record<string, unknown>) : null;
@@ -306,6 +308,14 @@ export async function POST(request: Request) {
   return respond(aiResponse.text, "idle", {
     contextMode: generalContext.contextMode,
   });
+
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[Webhook] Gemini failed — returning TwiML fallback:", errMsg);
+    return twimlResponse(
+      "Namaste 🙏 DaanSetu AI encountered an error. Please try again shortly.\n\nError: " + errMsg.slice(0, 200)
+    );
+  }
 }
 
 export async function GET() {
