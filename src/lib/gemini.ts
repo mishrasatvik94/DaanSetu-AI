@@ -1,14 +1,11 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import "server-only";
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY?.trim() ?? "";
 const GEMINI_MODEL = "gemini-2.5-flash";
 
 if (!process.env.GEMINI_API_KEY) {
   console.warn("[Gemini] GEMINI_API_KEY environment variable is undefined or empty!");
 }
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export const DAANSETU_SYSTEM_CONTEXT = [
   "You are DaanSetu AI, a trustworthy donation assistant for Bharat.",
@@ -65,12 +62,15 @@ export async function generateGeminiResponse(
     return fallbackResponse();
   }
 
-  // 4. Verify env var: if undefined, throw explicit error
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error("[Gemini] GEMINI_API_KEY environment variable is undefined or empty!");
-  }
+  // B) Add safe diagnostic log
+  console.log("Gemini key exists:", !!process.env.GEMINI_API_KEY);
 
   try {
+    // A & E) Ensure GEMINI_API_KEY is read from process.env and throw explicit error
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error("[Gemini] GEMINI_API_KEY environment variable is undefined or empty!");
+    }
+
     const prompt = [
       DAANSETU_SYSTEM_CONTEXT,
       context ? `\nLIVE CONTEXT:\n${context.trim()}` : "",
@@ -82,7 +82,8 @@ export async function generateGeminiResponse(
       .filter(Boolean)
       .join("\n");
 
-    // 5. Fix Gemini API integration using the exact SDK implementation
+    // Initialize lazily to ensure environment variables are bound
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({
       model: GEMINI_MODEL,
       systemInstruction: prompt,
@@ -104,8 +105,9 @@ export async function generateGeminiResponse(
     const response = await result.response;
     const text = response.text()?.trim() ?? "";
 
+    // If empty response: throw explicit error
     if (!text) {
-      return fallbackResponse(userMessage);
+      throw new Error("Gemini returned an empty response.");
     }
 
     return {
@@ -113,7 +115,7 @@ export async function generateGeminiResponse(
       actions: inferActions(text),
     };
   } catch (error) {
-    // 3 & 7. Log exact reason
+    // C & G) Log exact reason
     console.error("Gemini webhook error:", error);
     return fallbackResponse(userMessage);
   }
@@ -180,7 +182,7 @@ function fallbackResponse(userMessage?: string): AIResponse {
 
   if (lower.includes("ngo")) {
     return {
-      text: "Namaste 🙏 DaanSetu AI is temporarily busy. Please try again in a moment.",
+      text: "Namaste 🙏 DaanSetu AI is temporarily busy. Please try again shortly.",
       actions: [{ label: "Browse NGOs", to: "/ngos" }],
       error: true,
     };
@@ -188,14 +190,14 @@ function fallbackResponse(userMessage?: string): AIResponse {
 
   if (lower.includes("campaign") || lower.includes("donate") || lower.includes("qr") || lower.includes("upi")) {
     return {
-      text: "Namaste 🙏 DaanSetu AI is temporarily busy. Please try again in a moment.",
+      text: "Namaste 🙏 DaanSetu AI is temporarily busy. Please try again shortly.",
       actions: [{ label: "View Campaigns", to: "/qr-campaign" }],
       error: true,
     };
   }
 
   return {
-    text: "Namaste 🙏 DaanSetu AI is temporarily busy. Please try again in a moment.",
+    text: "Namaste 🙏 DaanSetu AI is temporarily busy. Please try again shortly.",
     error: true,
   };
 }
@@ -206,12 +208,4 @@ function shouldRetry(status: number): boolean {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-interface GeminiApiResponse {
-  candidates?: Array<{
-    content?: {
-      parts?: Array<{ text?: string }>;
-    };
-  }>;
 }

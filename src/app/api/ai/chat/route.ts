@@ -83,7 +83,14 @@ export async function POST(request: Request) {
       typeof m.parts[0]?.text === "string"
     );
 
-  const response = await generateAIResponse(message.trim(), context || undefined, sanitizedHistory);
-
-  return NextResponse.json(response, { status: 200 });
+  try {
+    const response = await generateAIResponse(message.trim(), context || undefined, sanitizedHistory);
+    return NextResponse.json(response, { status: 200 });
+  } catch (error) {
+    console.error("Gemini chat route error:", error);
+    return NextResponse.json({
+      text: "Namaste 🙏 DaanSetu AI is temporarily busy. Please try again shortly.",
+      error: true
+    }, { status: 200 });
+  }
 }

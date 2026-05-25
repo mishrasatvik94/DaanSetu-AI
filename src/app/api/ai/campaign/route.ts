@@ -68,7 +68,14 @@ export async function POST(request: Request) {
   } catch (err) {
     console.warn("[Campaign AI] Failed to fetch campaign:", err);
   }
-
-  const response = await generateAIResponse(message, context || undefined);
-  return NextResponse.json(response, { status: 200 });
+  try {
+    const response = await generateAIResponse(message, context || undefined);
+    return NextResponse.json(response, { status: 200 });
+  } catch (error) {
+    console.error("Gemini campaign route error:", error);
+    return NextResponse.json({
+      text: "Namaste 🙏 DaanSetu AI is temporarily busy. Please try again shortly.",
+      error: true
+    }, { status: 200 });
+  }
 }
