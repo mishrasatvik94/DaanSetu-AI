@@ -20,7 +20,7 @@ const KEY = "daansetu.campaigns.v1";
 
 function getBaseUrl() {
   if (typeof window !== "undefined" && window.location?.origin) return window.location.origin;
-  return process.env.NEXT_PUBLIC_BASE_URL ?? "https://YOUR_DOMAIN";
+  return process.env.NEXT_PUBLIC_APP_URL ?? "https://daan-setu-mu.vercel.app";
 }
 
 function createCampaignId(title: string) {

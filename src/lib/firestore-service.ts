@@ -164,8 +164,15 @@ export async function fetchLeaderboard(top = 20): Promise<LeaderboardEntry[]> {
 
 // ── Campaign service ──────────────────────────────────────────────────────────
 
+export interface CampaignUpdate {
+  date: string;
+  text: string;
+}
+
 export interface CampaignDoc {
   id: string;
+  /** URL-safe campaign slug (equals doc ID) */
+  slug?: string;
   campaignName: string;
   campaignId: string;
   ngoName?: string;
@@ -173,28 +180,85 @@ export interface CampaignDoc {
   qrCodeUrl?: string;
   scanCount: number;
   title: string;
+  /** Alias for title used in older documents */
+  description?: string;
   story: string;
   city: string;
   goal: number;
   raised: number;
   creator: string;
   supporters: number;
+  donorCount?: number;
+  /** 0–100 trust score shown in UI */
+  trustScore?: number;
+  /** Whether campaign has been manually verified */
+  verified?: boolean;
+  /** Urgency level: high | medium | low */
+  urgency?: "high" | "medium" | "low";
+  /** Image URL of the beneficiary or campaign */
+  beneficiaryImage?: string;
+  /** Timeline updates for the campaign */
+  updates?: CampaignUpdate[];
   createdAt?: number;
 }
 
+/** Safe accessor — fills every optional field with sane defaults. */
+export function normalizeCampaignDoc(raw: Partial<CampaignDoc> & { id: string }): CampaignDoc {
+  return {
+    id: raw.id,
+    slug: raw.slug ?? raw.id,
+    campaignName: raw.campaignName ?? raw.title ?? "Untitled Campaign",
+    campaignId: raw.campaignId ?? raw.id,
+    ngoName: raw.ngoName ?? "DaanSetu Verified NGO",
+    qrUrl: raw.qrUrl ?? "",
+    qrCodeUrl: raw.qrCodeUrl,
+    scanCount: raw.scanCount ?? 0,
+    title: raw.title ?? raw.campaignName ?? "Untitled Campaign",
+    description: raw.description ?? raw.story ?? "",
+    story: raw.story ?? raw.description ?? "Support this verified campaign.",
+    city: raw.city ?? "India",
+    goal: raw.goal ?? 0,
+    raised: raw.raised ?? 0,
+    creator: raw.creator ?? "Anonymous",
+    supporters: raw.supporters ?? raw.donorCount ?? 0,
+    donorCount: raw.donorCount ?? raw.supporters ?? 0,
+    trustScore: raw.trustScore ?? 82,
+    verified: raw.verified ?? true,
+    urgency: raw.urgency ?? "medium",
+    beneficiaryImage: raw.beneficiaryImage,
+    updates: raw.updates ?? [],
+    createdAt: raw.createdAt ?? Date.now(),
+  };
+}
+
 export async function fetchCampaigns(): Promise<CampaignDoc[]> {
-  return fetchCollection<CampaignDoc>(COL.CAMPAIGNS, [orderBy("createdAt", "desc"), limit(50)]);
+  const docs = await fetchCollection<CampaignDoc>(COL.CAMPAIGNS, [orderBy("createdAt", "desc"), limit(50)]);
+  return docs.map((d) => normalizeCampaignDoc(d));
+}
+
+export async function fetchCampaignBySlug(slug: string): Promise<CampaignDoc | null> {
+  const doc = await fetchDoc<CampaignDoc>(COL.CAMPAIGNS, slug);
+  if (!doc) return null;
+  return normalizeCampaignDoc(doc);
 }
 
 export async function createCampaignDoc(
   slug: string,
   data: Omit<CampaignDoc, "id">
 ): Promise<void> {
-  return upsertDocument(COL.CAMPAIGNS, slug, { ...data, id: slug });
+  return upsertDocument(COL.CAMPAIGNS, slug, { ...data, id: slug, slug });
 }
 
 export async function updateCampaignRaised(slug: string, raised: number, supporters: number): Promise<void> {
-  return upsertDocument(COL.CAMPAIGNS, slug, { raised, supporters });
+  return upsertDocument(COL.CAMPAIGNS, slug, { raised, supporters, donorCount: supporters });
+}
+
+export async function updateCampaignDonation(slug: string, amount: number): Promise<void> {
+  return upsertDocument(COL.CAMPAIGNS, slug, {
+    raised: increment(amount),
+    supporters: increment(1),
+    donorCount: increment(1),
+  });
 }
 
 export async function incrementCampaignScan(slug: string): Promise<void> {

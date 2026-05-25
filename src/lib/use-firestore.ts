@@ -12,12 +12,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, doc, onSnapshot } from "firebase/firestore";
 import {
   fetchNGOs,
   fetchNGOById,
   fetchLeaderboard,
   fetchKarmaForUser,
+  fetchCampaignBySlug,
+  normalizeCampaignDoc,
   type KarmaDoc,
   type LeaderboardEntry,
   type CampaignDoc,
@@ -264,6 +266,52 @@ export function useCampaigns() {
   }, []);
 
   return { campaigns, loading };
+}
+
+// ── Single campaign by slug ──────────────────────────────────────────
+
+export function useCampaignBySlug(slug: string) {
+  const [campaign, setCampaign] = useState<CampaignDoc | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+
+  useEffect(() => {
+    if (!slug) { setLoading(false); setNotFound(true); return; }
+    let cancelled = false;
+
+    const docRef = doc(db, COL.CAMPAIGNS, slug);
+    const unsubscribe = onSnapshot(docRef, (snap) => {
+      if (cancelled) return;
+      if (snap.exists()) {
+        setCampaign(normalizeCampaignDoc({ id: snap.id, ...snap.data() } as CampaignDoc));
+        setNotFound(false);
+        setLoading(false);
+      } else {
+        // Fallback: query by slug field
+        fetchCampaignBySlug(slug).then((found) => {
+          if (cancelled) return;
+          if (found) {
+            setCampaign(found);
+          } else {
+            setNotFound(true);
+          }
+          setLoading(false);
+        });
+      }
+    }, () => {
+      // onError: try fetch fallback
+      if (cancelled) return;
+      fetchCampaignBySlug(slug).then((found) => {
+        if (cancelled) return;
+        if (found) setCampaign(found); else setNotFound(true);
+        setLoading(false);
+      });
+    });
+
+    return () => { cancelled = true; unsubscribe(); };
+  }, [slug]);
+
+  return { campaign, loading, notFound };
 }
 
 function buildActivityFeed(

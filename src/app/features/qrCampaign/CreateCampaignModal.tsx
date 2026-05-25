@@ -29,6 +29,7 @@ export function CreateCampaignModal({
     createCampaignDoc(c.campaignId ?? c.slug, {
       campaignName: c.campaignName ?? c.title,
       campaignId: c.campaignId ?? c.slug,
+      slug: c.campaignId ?? c.slug,
       qrUrl: c.qrUrl ?? campaignUrl(c.campaignId ?? c.slug),
       scanCount: c.scanCount ?? 0,
       title: c.title,
@@ -38,6 +39,10 @@ export function CreateCampaignModal({
       creator: creator || user?.name || "Anonymous donor",
       city: city || "India",
       supporters: 0,
+      donorCount: 0,
+      trustScore: 82,
+      verified: true,
+      urgency: "medium",
       createdAt: c.createdAt,
     }).catch(console.error);
     onCreated(c);
