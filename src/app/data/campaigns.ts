@@ -19,8 +19,13 @@ export type PersonalCampaign = {
 const KEY = "daansetu.campaigns.v1";
 
 function getBaseUrl() {
-  if (typeof window !== "undefined" && window.location?.origin) return window.location.origin;
-  return process.env.NEXT_PUBLIC_APP_URL ?? "https://daan-setu-mu.vercel.app";
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (envUrl) return envUrl.replace(/\/$/, "");
+  if (typeof window !== "undefined" && window.location?.origin) {
+    const origin = window.location.origin;
+    if (!/localhost|127\.0\.0\.1|\[::1\]/i.test(origin)) return origin;
+  }
+  return "https://daan-setu-mu.vercel.app";
 }
 
 function createCampaignId(title: string) {
@@ -35,13 +40,21 @@ export function campaignUrl(campaignId: string) {
   return `${getBaseUrl()}/campaign/${encodeURIComponent(campaignId)}`;
 }
 
-export function buildUpiDeepLink(amount: number) {
+export function buildUpiDeepLink(amount?: number) {
   const upiId = process.env.NEXT_PUBLIC_UPI_ID?.trim() || "mishrasatvik94@okicici";
-  const safeAmount = Number.isFinite(amount) && amount > 0 ? Math.round(amount) : 1;
-  return `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent("DaanSetu")}&tn=${encodeURIComponent("Donation")}&am=${encodeURIComponent(String(safeAmount))}&cu=INR`;
+  const parts = [
+    `pa=${encodeURIComponent(upiId)}`,
+    `pn=${encodeURIComponent("DaanSetu")}`,
+    `tn=${encodeURIComponent("Donation")}`,
+  ];
+  if (amount != null && Number.isFinite(amount) && amount > 0) {
+    parts.push(`am=${encodeURIComponent(String(Math.round(amount)))}`);
+  }
+  parts.push("cu=INR");
+  return `upi://pay?${parts.join("&")}`;
 }
 
-export function buildUpiQrUrl(amount: number, size = 240) {
+export function buildUpiQrUrl(amount?: number, size = 240) {
   const deeplink = buildUpiDeepLink(amount);
   if (!deeplink) return "";
   return qrImageUrl(deeplink, size);

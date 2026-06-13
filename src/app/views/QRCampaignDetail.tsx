@@ -8,6 +8,7 @@ import { Button } from "../components/ui/button";
 import { QR_CAMPAIGNS } from "../data/ngos";
 import { getPersonalCampaign, donateToCampaign, qrImageUrl, campaignUrl, buildUpiDeepLink, buildUpiQrUrl, type PersonalCampaign } from "../data/campaigns";
 import { incrementCampaignScan } from "@/lib/firestore-service";
+import { buildWhatsAppShareText } from "@/lib/generateUpiLink";
 
 type FeaturedCampaign = (typeof QR_CAMPAIGNS)[number];
 
@@ -42,14 +43,24 @@ export function QRCampaignDetail({ slug }: { slug: string }) {
       <main className="max-w-6xl mx-auto px-6 py-24">
         <p style={{ color: "#4B5563" }}>Campaign not found.</p>
         <Link href="/qr-campaign" className="text-sm mt-3 inline-block" style={{ color: "#0F8F5F" }}>
-          â† All campaigns
+          ← All campaigns
         </Link>
       </main>
     );
   }
 
   function share(channel: "whatsapp" | "twitter") {
-    const text = encodeURIComponent(`Help me hit my DaanSetu goal â€” ${title}. Every rupee = a real meal. ${url}`);
+    const baseText =
+      channel === "whatsapp"
+        ? buildWhatsAppShareText({
+            title,
+            ngoName,
+            goal,
+            raised,
+            campaignUrl: url,
+          })
+        : `Join me in supporting this DaanSetu campaign — ${title}. ${url}`;
+    const text = encodeURIComponent(baseText);
     const target =
       channel === "whatsapp"
         ? `https://wa.me/?text=${text}`
@@ -129,7 +140,7 @@ export function QRCampaignDetail({ slug }: { slug: string }) {
                   <div style={{ color: "#1F2937", fontWeight: 500 }}>{(personal as PersonalCampaign).creator}</div>
                   <div className="text-xs flex items-center gap-2" style={{ color: "#6B7280" }}>
                     <span>{(personal as PersonalCampaign).city}</span>
-                    <span>Â·</span>
+                    <span>·</span>
                     <span className="inline-flex items-center gap-1" style={{ color: "#0F8F5F" }}>
                       <Sparkles className="w-3 h-3" /> {(personal as PersonalCampaign).karma.toLocaleString("en-IN")} KarmaScore
                     </span>
@@ -139,12 +150,12 @@ export function QRCampaignDetail({ slug }: { slug: string }) {
             )}
 
             <h1 className="tracking-tight" style={{ color: "#1F2937", fontSize: "clamp(2rem, 3.5vw, 2.75rem)", lineHeight: 1.1, fontWeight: 600 }}>{title}</h1>
-            {!isPersonal && <div className="mt-2 text-sm" style={{ color: "#6B7280" }}>{city} Â· {(featured as FeaturedCampaign).days} days remaining</div>}
+            {!isPersonal && <div className="mt-2 text-sm" style={{ color: "#6B7280" }}>{city} · {(featured as FeaturedCampaign).days} days remaining</div>}
 
             <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6">
               <div className="flex items-baseline justify-between">
-                <span style={{ color: "#1F2937", fontSize: "1.75rem", fontWeight: 600 }}>â‚¹{raised.toLocaleString("en-IN")}</span>
-                <span className="text-sm" style={{ color: "#6B7280" }}>of â‚¹{goal.toLocaleString("en-IN")}</span>
+                <span style={{ color: "#1F2937", fontSize: "1.75rem", fontWeight: 600 }}>₹{raised.toLocaleString("en-IN")}</span>
+                <span className="text-sm" style={{ color: "#6B7280" }}>of ₹{goal.toLocaleString("en-IN")}</span>
               </div>
               <div className="mt-4 h-2.5 rounded-full bg-slate-100 overflow-hidden">
                 <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "linear-gradient(90deg, #0F8F5F, #19A06E)" }} />
@@ -180,7 +191,7 @@ export function QRCampaignDetail({ slug }: { slug: string }) {
                 <div style={{ color: "#1F2937", fontWeight: 600 }}>How it works</div>
                 <ol className="mt-3 space-y-2 text-sm" style={{ color: "#4B5563" }}>
                   <li>1. Scan the campaign QR code from your phone.</li>
-                  <li>2. Choose meals or funds â€” pay via UPI in two taps.</li>
+                  <li>2. Choose meals or funds — pay via UPI in two taps.</li>
                   <li>3. Receive a public impact receipt with the NGO and beneficiaries.</li>
                 </ol>
               </div>
@@ -215,7 +226,7 @@ export function QRCampaignDetail({ slug }: { slug: string }) {
                 <Share2 className="w-4 h-4" style={{ color: "#0F8F5F" }} />
                 <span style={{ color: "#1F2937", fontWeight: 600 }}>Share the campaign</span>
               </div>
-              <p className="mt-1 text-xs" style={{ color: "#6B7280" }}>Every share averages â‚¹420 in donations. Go viral.</p>
+              <p className="mt-1 text-xs" style={{ color: "#6B7280" }}>Every share averages ₹420 in donations. Go viral.</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <button onClick={() => share("whatsapp")} className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50">
                   <MessageCircle className="w-4 h-4" style={{ color: "#25D366" }} /> WhatsApp
@@ -244,7 +255,7 @@ export function QRCampaignDetail({ slug }: { slug: string }) {
                   <QrCode className="w-24 h-24" style={{ color: "#0F8F5F" }} />
                 )}
               </div>
-              <div className="mt-3 text-center text-xs" style={{ color: "#6B7280" }}>Scan to open this campaign Â· UPI accepted</div>
+              <div className="mt-3 text-center text-xs" style={{ color: "#6B7280" }}>Scan to open this campaign · UPI accepted</div>
 
               <div className="mt-5 rounded-2xl border border-slate-200 p-4" style={{ backgroundColor: "#FAFAF8" }}>
                 <div className="text-xs tracking-wider" style={{ color: "#0F8F5F" }}>DONATE VIA UPI</div>
@@ -271,16 +282,16 @@ export function QRCampaignDetail({ slug }: { slug: string }) {
                   <div className="mt-5 grid grid-cols-3 gap-2">
                     {[200, 500, 1000].map((v) => (
                       <button key={v} onClick={() => setAmount(v)} className="text-sm py-2 rounded-lg border transition" style={{ borderColor: amount === v ? "#0F8F5F" : "#E5E7EB", color: amount === v ? "#0F8F5F" : "#4B5563", backgroundColor: amount === v ? "#F3FBF6" : "#fff", fontWeight: amount === v ? 600 : 400 }}>
-                        â‚¹{v}
+                        ₹{v}
                       </button>
                     ))}
                   </div>
                   <div className="mt-2 flex items-center gap-2">
-                    <span className="text-sm" style={{ color: "#6B7280" }}>â‚¹</span>
+                    <span className="text-sm" style={{ color: "#6B7280" }}>₹</span>
                     <input type="number" min={50} step={50} value={amount} onChange={(e) => setAmount(Math.max(50, Number(e.target.value) || 0))} className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-slate-300" />
                   </div>
                   <Button className="mt-4 w-full text-white hover:opacity-90" style={{ backgroundColor: "#0F8F5F" }} onClick={donate}>
-                    Donate â‚¹{amount.toLocaleString("en-IN")}
+                    Donate ₹{amount.toLocaleString("en-IN")}
                   </Button>
                 </>
               ) : (

@@ -11,12 +11,12 @@ import { DAANSETU_SYSTEM_CONTEXT, generateGeminiResponse, type GeminiMessage } f
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://daan-setu-mu.vercel.app";
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://daan-setu-mu.vercel.app").replace(/\/$/, "");
 const UPI_ID = process.env.NEXT_PUBLIC_UPI_ID ?? "mishrasatvik94@okicici";
 const TWILIO_REPLY_LIMIT = 1500;
 
 type BotState = "idle" | "awaiting_location" | "awaiting_food_details" | "awaiting_campaign_selection" | "awaiting_amount";
-type Intent = "food" | "donate" | "help" | "clothes" | "education" | "medical" | "ngo" | "campaign" | "qr" | "payment" | null;
+type Intent = "food" | "donate" | "help" | "track" | "clothes" | "education" | "medical" | "ngo" | "campaign" | "qr" | "payment" | null;
 type SessionMessage = { role: "user" | "model"; text: string; ts: number };
 
 type CampaignSummary = {
@@ -50,6 +50,7 @@ const INTENT_ORDER: Array<{ intent: Exclude<Intent, null>; keywords: string[] }>
   { intent: "medical", keywords: ["medical", "hospital", "medicine", "health", "doctor"] },
   { intent: "qr", keywords: ["qr", "scan", "barcode"] },
   { intent: "payment", keywords: ["upi", "payment", "pay", "donation link"] },
+  { intent: "track", keywords: ["track", "status", "receipt", "confirm", "pickup", "schedule", "eta"] },
   { intent: "donate", keywords: ["donate", "help", "give", "contribute", "daan"] },
   { intent: "help", keywords: ["help", "how to donate", "what can i do", "options"] },
 ];
@@ -88,10 +89,14 @@ export async function POST(request: Request) {
   const sessionId = phone || messageSid;
   const sessionRef = doc(serverDb, COL.CHAT_SESSIONS, sessionId);
 
-  // Diagnostic logging for production debugging
-  console.log("[Webhook] Incoming WhatsApp message:", { phone: maskPhone(phone), profileName, messageSid, bodyLength: message.length });
-  console.log("[Webhook] Gemini key exists:", !!process.env.GEMINI_API_KEY);
-  console.log("[Webhook] TWILIO_AUTH_TOKEN set:", !!process.env.TWILIO_AUTH_TOKEN);
+  if (process.env.NODE_ENV !== "production") {
+    console.log("[Webhook] Incoming WhatsApp message:", {
+      phone: maskPhone(phone),
+      profileName,
+      messageSid,
+      bodyLength: message.length,
+    });
+  }
 
   try {
 
@@ -108,12 +113,12 @@ export async function POST(request: Request) {
   if (state === "idle" || !state) {
     if (normalized === "1" || normalized === "donate" || normalized === "donate now") {
       intent = "donate";
-    } else if (normalized === "2" || normalized === "impact" || normalized === "community plate") {
-      intent = "campaign";
-    } else if (normalized === "3" || normalized === "ngo" || normalized === "ngos") {
+    } else if (normalized === "2" || normalized === "ngo" || normalized === "ngos") {
       intent = "ngo";
+    } else if (normalized === "3" || normalized === "impact" || normalized === "community plate") {
+      intent = "campaign";
     } else if (normalized === "4" || normalized === "track" || normalized === "pickup") {
-      intent = "help";
+      intent = "track";
     } else if (normalized === "5" || normalized === "help" || normalized === "ai help") {
       intent = "help";
     }
@@ -273,7 +278,7 @@ export async function POST(request: Request) {
     });
   }
 
-  if (intent === "donate" || intent === "campaign" || intent === "help" || intent === "ngo" || intent === "education" || intent === "medical" || intent === "qr" || intent === "payment" || intent === "clothes") {
+  if (intent === "donate" || intent === "campaign" || intent === "help" || intent === "track" || intent === "ngo" || intent === "education" || intent === "medical" || intent === "qr" || intent === "payment" || intent === "clothes") {
     const context = await buildPlatformContext({
       message,
       intent,
@@ -281,7 +286,7 @@ export async function POST(request: Request) {
       profileName,
     });
 
-    if (intent === "campaign" || intent === "donate" || intent === "help") {
+    if (intent === "campaign" || intent === "donate") {
       const campaignResponse = await generateGeminiResponse(message, context.text, userHistory);
       const campaignState = context.campaignSummaries.length > 0 ? "awaiting_campaign_selection" : "idle";
       return respond(campaignResponse.text, campaignState, {
@@ -313,7 +318,7 @@ export async function POST(request: Request) {
     const errMsg = err instanceof Error ? err.message : String(err);
     console.error("[Webhook] Gemini failed — returning TwiML fallback:", errMsg);
     return twimlResponse(
-      "Namaste 🙏 DaanSetu AI encountered an error. Please try again shortly.\n\nError: " + errMsg.slice(0, 200)
+      "Namaste 🙏 DaanSetu AI is temporarily busy. Please try again shortly."
     );
   }
 }
@@ -458,6 +463,9 @@ async function buildPlatformContext(input: { message: string; intent: Intent; ph
       : "",
     input.intent === "campaign" || input.intent === "donate" || input.intent === "help"
       ? "CAMPAIGN FLOW: Surface top verified campaigns and guide the user toward donation steps and UPI payment guidance."
+      : "",
+    input.intent === "track"
+      ? "TRACKING FLOW: If the user asks to track a donation or pickup, summarise any recent pickups/donations from the IMPACT SNAPSHOT and guide the next step in one message."
       : "",
     input.intent === "ngo"
       ? "NGO FLOW: Use the verified NGO list below and answer with a concise recommendation based on city or service area."
@@ -647,6 +655,7 @@ function determineContextMode(intent: Intent, message: string): string {
   if (intent === "food") return "food_donation";
   if (intent === "ngo") return "ngo_discovery";
   if (intent === "campaign" || intent === "donate" || intent === "help") return "campaign_support";
+  if (intent === "track") return "tracking";
   if (intent === "medical") return "medical_support";
   if (intent === "education") return "education_support";
   if (intent === "qr") return "qr_campaigns";
@@ -680,7 +689,7 @@ async function generateCampaignAmountPrompt(campaign: { title: string; slug: str
 }
 
 function buildDonationMessage(campaign: { title: string; slug: string }, amount: number): string {
-  const upiLink = `upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent("DaanSetu")}&am=${amount}&cu=INR&tn=${encodeURIComponent(campaign.title.slice(0, 50))}`;
+  const upiLink = `upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent("DaanSetu")}&tn=${encodeURIComponent("Donation")}&am=${encodeURIComponent(String(amount))}&cu=INR`;
   return [
     `Thank you for choosing to donate ₹${amount.toLocaleString("en-IN")}.`,
     `Campaign: ${campaign.title}`,
@@ -777,8 +786,8 @@ function formatWhatsAppResponse(responseText: string, nextState: BotState, campa
     "",
     "How can I help? Reply with a number or keyword:",
     "1️⃣ *DONATE* — Active verified campaigns",
-    "2️⃣ *IMPACT* — Live plate count & snapshot",
-    "3️⃣ *NGO* — Verified community kitchens",
+    "2️⃣ *NGO* — Verified community kitchens",
+    "3️⃣ *IMPACT* — Live plate count & snapshot",
     "4️⃣ *TRACK* — Volunteer pickups & schedules",
     "5️⃣ *HELP* — Talk to DaanSetu AI assistant",
     "",
@@ -786,6 +795,6 @@ function formatWhatsAppResponse(responseText: string, nextState: BotState, campa
     directLink,
     "━━━━━━━━━━━━━━━━━━━",
     "",
-    "Reply with *DONATE*, *IMPACT*, *NGO*, *TRACK*, or *HELP*."
+    "Reply with *DONATE*, *NGO*, *IMPACT*, *TRACK*, or *HELP*."
   ].join("\n");
 }

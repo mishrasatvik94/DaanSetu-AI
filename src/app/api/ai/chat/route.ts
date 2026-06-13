@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     request.headers.get("x-real-ip") ??
     "unknown";
 
-  if (!checkRateLimit(ip)) {
+  if (ip !== "unknown" && !checkRateLimit(ip)) {
     return NextResponse.json(
       { text: "🙏 You're sending messages too quickly. Please wait a moment.", error: true },
       { status: 429 }
@@ -88,13 +88,11 @@ export async function POST(request: Request) {
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : String(error);
     console.error("[AI Chat] Gemini failed:", errMsg);
-    return NextResponse.json(
-      {
-        text: "Namaste 🙏 DaanSetu AI is temporarily busy. Please try again shortly.",
-        error: true,
-        _debug: errMsg,
-      },
-      { status: 200 }
-    );
+    const payload: { text: string; error: true; debug?: string } = {
+      text: "Namaste 🙏 DaanSetu AI is temporarily busy. Please try again shortly.",
+      error: true,
+    };
+    if (process.env.NODE_ENV !== "production") payload.debug = errMsg;
+    return NextResponse.json(payload, { status: 502 });
   }
 }

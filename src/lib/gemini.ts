@@ -8,7 +8,7 @@
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const MODEL = "gemini-2.5-flash";
+const MODEL = process.env.GEMINI_MODEL ?? "gemini-1.5-flash";
 
 const SYSTEM_PROMPT = [
   "You are DaanSetu AI — a warm, concise, trustworthy donation assistant for Bharat.",
@@ -66,13 +66,8 @@ export async function generateGeminiResponse(
 ): Promise<AIResponse> {
   const key = process.env.GEMINI_API_KEY;
 
-  console.log("[Gemini] generateGeminiResponse called");
-  console.log("[Gemini] Key exists:", !!key, "| Key prefix:", key?.slice(0, 8) ?? "(none)");
-  console.log("[Gemini] Message length:", userMessage.trim().length);
-
   if (!key) {
     const err = new Error("[Gemini] GEMINI_API_KEY is not set");
-    console.error(err.message);
     throw err;
   }
 
@@ -108,11 +103,8 @@ export async function generateGeminiResponse(
       },
     });
 
-    console.log("[Gemini] Calling generateContent...");
     const result = await model.generateContent(fullPrompt);
     const text = result.response.text()?.trim();
-
-    console.log("[Gemini] Response received, length:", text?.length ?? 0);
 
     if (!text) {
       throw new Error("[Gemini] Empty response from API");

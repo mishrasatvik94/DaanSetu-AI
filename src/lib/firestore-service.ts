@@ -286,8 +286,9 @@ export async function upsertChatSession(userId: string, data: Partial<ChatSessio
 /** Returns true if a collection is empty (has no documents). */
 export async function isCollectionEmpty(colName: string): Promise<boolean> {
   try {
-    const snap = await getDocs(query(collection(db, colName), limit(1)));
-    return snap.empty;
+    const snap = await getDocs(query(collection(db, colName), limit(2)));
+    if (snap.empty) return true;
+    return !snap.docs.some((d) => d.id !== "_meta");
   } catch {
     return true;
   }

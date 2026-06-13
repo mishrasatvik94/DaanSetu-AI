@@ -76,15 +76,20 @@ export function generateQrUrl(data: string, size = 260): string {
   return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=8&data=${encodeURIComponent(data)}`;
 }
 
+function getPublicAppUrl(): string {
+  const envUrl = (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_APP_URL?.trim()) || "";
+  if (envUrl) return envUrl.replace(/\/$/, "");
+  const origin = typeof window !== "undefined" ? window.location?.origin ?? "" : "";
+  if (origin && !/localhost|127\.0\.0\.1|\[::1\]/i.test(origin)) return origin;
+  return "https://daan-setu-mu.vercel.app";
+}
+
 /**
  * Returns the full campaign URL for a given slug.
  * Always uses the production domain — never localhost.
  */
 export function getCampaignUrl(slug: string): string {
-  const base =
-    (typeof window !== "undefined" && window.location?.origin) ||
-    (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_APP_URL) ||
-    "https://daan-setu-mu.vercel.app";
+  const base = getPublicAppUrl();
   return `${base}/campaign/${encodeURIComponent(slug)}`;
 }
 
@@ -99,20 +104,17 @@ export function buildWhatsAppShareText(params: {
   campaignUrl: string;
 }): string {
   const { title, raised, goal, ngoName = "DaanSetu Verified NGO", campaignUrl } = params;
-  const upiId = getUpiId();
   return [
-    "━━━━━━━━━━",
-    "🙏 *DaanSetu Verified Campaign*",
-    `📍 *Campaign:* ${title}`,
-    `🏢 *NGO:* ${ngoName}`,
-    `🎯 *Goal:* ₹${goal.toLocaleString("en-IN")}`,
-    `💚 *Raised:* ₹${raised.toLocaleString("en-IN")}`,
+    "🙏 Join me in supporting this verified DaanSetu campaign",
     "",
-    "🔗 *Donate:*",
+    "Every contribution creates real impact ❤️",
+    "",
+    `📍 Campaign: ${title}`,
+    `🏛 NGO: ${ngoName}`,
+    `🎯 Goal: ₹${goal.toLocaleString("en-IN")}`,
+    `💚 Raised: ₹${raised.toLocaleString("en-IN")}`,
+    "",
+    "🔗 Donate now:",
     campaignUrl,
-    "",
-    "📱 *UPI:*",
-    upiId,
-    "━━━━━━━━━━"
   ].join("\n");
 }

@@ -17,12 +17,14 @@ const SEED: Msg[] = [
 ];
 
 const SUGGESTIONS = [
-  "I have 20 meals in Noida",
-  "Show me verified NGOs in Mumbai",
-  "How do I donate via UPI?",
+  "I want to donate food in Delhi",
+  "Show verified NGOs in Mumbai",
+  "Start a birthday fundraiser",
+  "Track my donation impact",
   "Is my donation 80G eligible?",
-  "Start a QR campaign for my birthday",
+  "I have surplus food to donate",
   "What is KarmaScore?",
+  "How do I donate via UPI?",
 ];
 
 const CAPABILITIES = [
@@ -136,7 +138,7 @@ export function AIAssistant() {
                 Setu AI
                 <span className="text-[9px] tracking-widest px-1.5 py-0.5 rounded" style={{ backgroundColor: "#E8F5EE", color: "#0F8F5F" }}>GEMINI</span>
               </div>
-              <div className="text-xs" style={{ color: "#0F8F5F" }}>Online · powered by Google Gemini 1.5 Flash</div>
+              <div className="text-xs" style={{ color: "#0F8F5F" }}>Online · powered by Google Gemini</div>
             </div>
             <button
               onClick={resetChat}
@@ -223,7 +225,7 @@ export function AIAssistant() {
               <span className="text-xs font-semibold" style={{ color: "#0F8F5F" }}>Gemini Powered</span>
             </div>
             <p className="text-xs" style={{ color: "#4B5563" }}>
-              Setu AI uses Google Gemini 1.5 Flash with live DaanSetu campaign + NGO data for accurate, context-aware answers.
+              Setu AI uses Google Gemini with live DaanSetu campaign + NGO data for accurate, context-aware answers.
             </p>
           </div>
 

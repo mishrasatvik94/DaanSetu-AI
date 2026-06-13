@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     "unknown";
 
-  if (!checkRateLimit(`campaign:${ip}`)) {
+  if (ip !== "unknown" && !checkRateLimit(`campaign:${ip}`)) {
     return NextResponse.json(
       { text: "Please slow down. Try again in a moment.", error: true },
       { status: 429 }
@@ -72,10 +72,13 @@ export async function POST(request: Request) {
     const response = await generateAIResponse(message, context || undefined);
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
-    console.error("Gemini campaign route error:", error);
-    return NextResponse.json({
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error("[Campaign AI] Gemini failed:", errMsg);
+    const payload: { text: string; error: true; debug?: string } = {
       text: "Namaste 🙏 DaanSetu AI is temporarily busy. Please try again shortly.",
-      error: true
-    }, { status: 200 });
+      error: true,
+    };
+    if (process.env.NODE_ENV !== "production") payload.debug = errMsg;
+    return NextResponse.json(payload, { status: 502 });
   }
 }

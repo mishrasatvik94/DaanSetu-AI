@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { useCampaignBySlug } from "@/lib/use-firestore";
-import { generateUpiLink, generateUpiQrUrl, generateQrUrl, getCampaignUrl, buildWhatsAppShareText } from "@/lib/generateUpiLink";
+import { buildWhatsAppShareText, generateUpiLink, generateUpiQrUrl, generateQrUrl, getCampaignUrl } from "@/lib/generateUpiLink";
 import type { CampaignDoc } from "@/lib/firestore-service";
 import { incrementCampaignScan, updateCampaignDonation } from "@/lib/firestore-service";
 
@@ -70,112 +70,174 @@ function AmountBtn({ value, selected, onSelect }: { value: number; selected: boo
   );
 }
 
-// ── Poster download (html-to-image via canvas fallback) ───────────────────────
+// ── Poster download — premium redesigned SVG ──────────────────────────────────
 async function downloadPoster(campaign: CampaignDoc, campaignLink: string, upiLink: string, campaignQrUrl: string, upiQrUrl: string) {
-  // Build a minimal SVG poster we can download without external deps
   const pct = Math.min(100, Math.round(((campaign.raised ?? 0) / (campaign.goal || 1)) * 100));
   const score = campaign.trustScore ?? 82;
-  const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1100" font-family="Arial, sans-serif">
+  const raised = (campaign.raised ?? 0).toLocaleString("en-IN");
+  const goal = (campaign.goal ?? 0).toLocaleString("en-IN");
+  const donors = campaign.supporters ?? Math.max(12, Math.round((campaign.raised ?? 0) / 450));
+  const city = campaign.city ?? "India";
+  const creator = campaign.creator ?? "DaanSetu Community";
+  const ngo = campaign.ngoName ?? "DaanSetu Verified NGO";
+  const progressWidth = Math.round(620 * pct / 100);
+  const slug = campaign.slug ?? campaign.id ?? "campaign";
+  const host = (() => {
+    try {
+      return new URL(campaignLink).host;
+    } catch {
+      return "daan-setu-mu.vercel.app";
+    }
+  })();
+  const displayLink = `${host}/campaign/${slug}`;
+
+  // Safe text truncation + XML escaping
+  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const rawTitle = campaign.title ?? "DaanSetu Campaign";
+  const titleLine1 = esc(rawTitle.slice(0, 42));
+  const titleLine2 = rawTitle.length > 42 ? esc(rawTitle.slice(42, 84)) : "";
+  const rawStory = campaign.story ?? campaign.description ?? "Support this verified DaanSetu campaign and help us make an impact.";
+  // Break story into ~55-char lines for SVG rendering (no foreignObject needed)
+  const storyWords = rawStory.replace(/\n/g, " ").split(" ");
+  const storyLines: string[] = [];
+  let line = "";
+  for (const word of storyWords) {
+    if ((line + " " + word).length > 72) {
+      storyLines.push(esc(line.trim()));
+      line = word;
+    } else {
+      line = line ? line + " " + word : word;
+    }
+    if (storyLines.length >= 5) break;
+  }
+  if (line && storyLines.length < 5) storyLines.push(esc(line.trim()));
+
+  const storyTextElements = storyLines
+    .map((l, i) => `<text x="90" y="${490 + i * 22}" font-size="14" fill="#374151" font-family="Arial,sans-serif">${l}</text>`)
+    .join("\n  ");
+
+  const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="800" height="1120" viewBox="0 0 800 1120">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0a4f35"/>
-      <stop offset="40%" stop-color="#0F8F5F"/>
-      <stop offset="100%" stop-color="#064e3b"/>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#064e3b"/>
+      <stop offset="50%" stop-color="#0F8F5F"/>
+      <stop offset="100%" stop-color="#022c22"/>
     </linearGradient>
-    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id="cardGrad" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#ffffff"/>
       <stop offset="100%" stop-color="#f0fdf4"/>
     </linearGradient>
+    <linearGradient id="progressGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="rgba(0,0,0,0.15)"/>
+    </filter>
   </defs>
 
   <!-- Background -->
-  <rect width="800" height="1100" fill="url(#bg)"/>
+  <rect width="800" height="1120" fill="url(#bgGrad)"/>
 
-  <!-- Top branding band -->
-  <rect x="0" y="0" width="800" height="90" fill="rgba(0,0,0,0.25)"/>
-  <text x="40" y="58" font-size="32" font-weight="bold" fill="white">🌿 DaanSetu</text>
-  <text x="400" y="38" font-size="12" fill="rgba(255,255,255,0.7)" text-anchor="middle">VERIFIED DONATION CAMPAIGN</text>
-  <text x="400" y="58" font-size="11" fill="rgba(255,255,255,0.5)" text-anchor="middle">daan-setu-mu.vercel.app</text>
+  <!-- Decorative circles -->
+  <circle cx="720" cy="80" r="120" fill="rgba(16,185,129,0.08)"/>
+  <circle cx="80" cy="1000" r="150" fill="rgba(16,185,129,0.06)"/>
 
-  <!-- Verified badge -->
-  <rect x="570" y="22" width="190" height="48" rx="24" fill="rgba(16,185,129,0.3)" stroke="rgba(16,185,129,0.8)" stroke-width="1.5"/>
-  <text x="665" y="44" font-size="11" fill="#6ee7b7" text-anchor="middle" font-weight="bold">✓ VERIFIED CAMPAIGN</text>
-  <text x="665" y="60" font-size="10" fill="rgba(110,231,183,0.8)" text-anchor="middle">Trust Score: ${score}/100</text>
+  <!-- Header band -->
+  <rect x="0" y="0" width="800" height="100" fill="rgba(0,0,0,0.3)"/>
 
-  <!-- Main card -->
-  <rect x="40" y="110" width="720" height="780" rx="24" fill="url(#card)" opacity="0.97"/>
+  <!-- DaanSetu brand -->
+  <text x="48" y="44" font-size="13" fill="rgba(255,255,255,0.65)" font-family="Arial,sans-serif" letter-spacing="3">DAANSETU</text>
+  <text x="48" y="72" font-size="28" font-weight="bold" fill="white" font-family="Arial,sans-serif">India&#39;s Trust Layer for Giving</text>
+
+  <!-- Verified badge top-right -->
+  <rect x="560" y="24" width="212" height="52" rx="26" fill="rgba(16,185,129,0.25)" stroke="#34d399" stroke-width="1.5"/>
+  <text x="666" y="46" font-size="11" fill="#6ee7b7" text-anchor="middle" font-family="Arial,sans-serif" font-weight="bold">✓ VERIFIED CAMPAIGN</text>
+  <text x="666" y="63" font-size="11" fill="rgba(110,231,183,0.85)" text-anchor="middle" font-family="Arial,sans-serif">Trust Score: ${score}/100</text>
+
+  <!-- Main white card -->
+  <rect x="40" y="116" width="720" height="866" rx="20" fill="url(#cardGrad)" filter="url(#shadow)"/>
 
   <!-- Campaign title -->
-  <text x="400" y="165" font-size="28" font-weight="bold" fill="#1F2937" text-anchor="middle">${campaign.title.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").slice(0, 50)}</text>
-  <text x="400" y="195" font-size="14" fill="#6B7280" text-anchor="middle">${campaign.city ?? "India"} · by ${campaign.creator ?? "Anonymous"}</text>
+  <text x="400" y="168" font-size="26" font-weight="bold" fill="#111827" text-anchor="middle" font-family="Arial,sans-serif">${titleLine1}</text>
+  ${titleLine2 ? `<text x="400" y="200" font-size="26" font-weight="bold" fill="#111827" text-anchor="middle" font-family="Arial,sans-serif">${titleLine2}</text>` : ""}
+
+  <!-- City · creator -->
+  <text x="400" y="${titleLine2 ? 228 : 200}" font-size="14" fill="#6B7280" text-anchor="middle" font-family="Arial,sans-serif">${esc(city)} · by ${esc(creator)}</text>
+  <text x="400" y="${titleLine2 ? 248 : 220}" font-size="13" fill="#059669" text-anchor="middle" font-family="Arial,sans-serif">NGO: ${esc(ngo)}</text>
 
   <!-- Divider -->
-  <line x1="80" y1="210" x2="720" y2="210" stroke="#E5E7EB" stroke-width="1"/>
+  <line x1="90" y1="270" x2="710" y2="270" stroke="#E5E7EB" stroke-width="1"/>
 
-  <!-- Stats block -->
-  <rect x="60" y="225" width="200" height="100" rx="12" fill="#F0FDF4"/>
-  <text x="160" y="265" font-size="12" fill="#6B7280" text-anchor="middle">RAISED</text>
-  <text x="160" y="295" font-size="22" font-weight="bold" fill="#0F8F5F" text-anchor="middle">₹${(campaign.raised ?? 0).toLocaleString("en-IN")}</text>
+  <!-- Stats: Raised | Goal | Funded -->
+  <rect x="70" y="285" width="185" height="90" rx="12" fill="#ECFDF5"/>
+  <text x="162" y="318" font-size="11" fill="#059669" text-anchor="middle" font-family="Arial,sans-serif" font-weight="bold" letter-spacing="1">RAISED</text>
+  <text x="162" y="354" font-size="24" font-weight="bold" fill="#065f46" text-anchor="middle" font-family="Arial,sans-serif">&#8377;${raised}</text>
 
-  <rect x="300" y="225" width="200" height="100" rx="12" fill="#F9FAFB"/>
-  <text x="400" y="265" font-size="12" fill="#6B7280" text-anchor="middle">GOAL</text>
-  <text x="400" y="295" font-size="22" font-weight="bold" fill="#1F2937" text-anchor="middle">₹${(campaign.goal ?? 0).toLocaleString("en-IN")}</text>
+  <rect x="307" y="285" width="185" height="90" rx="12" fill="#F9FAFB"/>
+  <text x="400" y="318" font-size="11" fill="#6B7280" text-anchor="middle" font-family="Arial,sans-serif" font-weight="bold" letter-spacing="1">GOAL</text>
+  <text x="400" y="354" font-size="24" font-weight="bold" fill="#111827" text-anchor="middle" font-family="Arial,sans-serif">&#8377;${goal}</text>
 
-  <rect x="540" y="225" width="200" height="100" rx="12" fill="#FEF3C7"/>
-  <text x="640" y="265" font-size="12" fill="#6B7280" text-anchor="middle">FUNDED</text>
-  <text x="640" y="295" font-size="22" font-weight="bold" fill="#D97706" text-anchor="middle">${pct}%</text>
+  <rect x="544" y="285" width="185" height="90" rx="12" fill="#FFFBEB"/>
+  <text x="636" y="318" font-size="11" fill="#92400e" text-anchor="middle" font-family="Arial,sans-serif" font-weight="bold" letter-spacing="1">FUNDED</text>
+  <text x="636" y="354" font-size="28" font-weight="bold" fill="#D97706" text-anchor="middle" font-family="Arial,sans-serif">${pct}%</text>
 
   <!-- Progress bar -->
-  <rect x="60" y="345" width="680" height="16" rx="8" fill="#E5E7EB"/>
-  <rect x="60" y="345" width="${Math.round(680 * pct / 100)}" height="16" rx="8" fill="#0F8F5F"/>
-  <text x="60" y="380" font-size="11" fill="#6B7280">${pct}% of goal reached · ${campaign.supporters ?? 0} donors</text>
+  <rect x="70" y="392" width="660" height="14" rx="7" fill="#E5E7EB"/>
+  <rect x="70" y="392" width="${progressWidth}" height="14" rx="7" fill="url(#progressGrad)"/>
+  <text x="70" y="424" font-size="12" fill="#6B7280" font-family="Arial,sans-serif">${pct}% funded · ${donors} donors · ${city}</text>
 
-  <!-- Story -->
-  <text x="60" y="415" font-size="14" font-weight="bold" fill="#1F2937">About this campaign</text>
-  <foreignObject x="60" y="428" width="680" height="120">
-    <body xmlns="http://www.w3.org/1999/xhtml" style="margin:0;padding:0">
-      <p style="font-size:13px;color:#4B5563;line-height:1.6;font-family:Arial">${(campaign.story ?? campaign.description ?? "Support this verified DaanSetu campaign.").slice(0, 280).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}...</p>
-    </body>
-  </foreignObject>
+  <!-- Divider -->
+  <line x1="90" y1="445" x2="710" y2="445" stroke="#F3F4F6" stroke-width="1"/>
 
-  <!-- QR codes label -->
-  <text x="400" y="580" font-size="15" font-weight="bold" fill="#1F2937" text-anchor="middle">📲 Scan to Donate Instantly</text>
+  <!-- Story section -->
+  <text x="90" y="470" font-size="13" font-weight="bold" fill="#374151" font-family="Arial,sans-serif" letter-spacing="0.5">ABOUT THIS CAMPAIGN</text>
+  ${storyTextElements}
 
-  <!-- Campaign QR placeholder area -->
-  <rect x="80" y="595" width="270" height="240" rx="16" fill="#F9FAFB" stroke="#E5E7EB" stroke-width="1.5"/>
-  <text x="215" y="625" font-size="11" font-weight="bold" fill="#6B7280" text-anchor="middle">CAMPAIGN PAGE QR</text>
-  <image x="140" y="640" width="150" height="150" href="${campaignQrUrl}"/>
-  <text x="215" y="810" font-size="10" fill="#9CA3AF" text-anchor="middle">Scan to visit campaign</text>
+  <!-- QR Section label -->
+  <line x1="90" y1="618" x2="710" y2="618" stroke="#E5E7EB" stroke-width="1"/>
+  <text x="400" y="648" font-size="15" font-weight="bold" fill="#111827" text-anchor="middle" font-family="Arial,sans-serif">Scan to Donate Instantly</text>
 
-  <!-- UPI QR placeholder area -->
-  <rect x="450" y="595" width="270" height="240" rx="16" fill="#F0FDF4" stroke="#0F8F5F" stroke-width="1.5"/>
-  <text x="585" y="625" font-size="11" font-weight="bold" fill="#0F8F5F" text-anchor="middle">DIRECT UPI PAYMENT QR</text>
-  <image x="510" y="640" width="150" height="150" href="${upiQrUrl}"/>
-  <text x="585" y="810" font-size="10" fill="#9CA3AF" text-anchor="middle">Google Pay · PhonePe · Paytm</text>
+  <!-- Campaign QR box -->
+  <rect x="72" y="665" width="278" height="220" rx="16" fill="#F9FAFB" stroke="#E5E7EB" stroke-width="1.5"/>
+  <text x="211" y="692" font-size="11" font-weight="bold" fill="#6B7280" text-anchor="middle" font-family="Arial,sans-serif" letter-spacing="1">CAMPAIGN PAGE QR</text>
+  <image x="146" y="702" width="130" height="130" href="${campaignQrUrl}"/>
+  <text x="211" y="858" font-size="11" fill="#9CA3AF" text-anchor="middle" font-family="Arial,sans-serif">Scan to visit campaign</text>
+  <text x="211" y="876" font-size="10" fill="#9CA3AF" text-anchor="middle" font-family="Arial,sans-serif">${esc(host)}</text>
 
-  <!-- Trust badges -->
-  <rect x="60" y="860" width="680" height="1" fill="#E5E7EB"/>
-  <text x="60" y="890" font-size="12" fill="#6B7280">✓ 80G Tax Exemption</text>
-  <text x="260" y="890" font-size="12" fill="#6B7280">✓ UPI Verified</text>
-  <text x="420" y="890" font-size="12" fill="#6B7280">✓ NGO Audited</text>
-  <text x="580" y="890" font-size="12" fill="#6B7280">✓ FCRA Aligned</text>
+  <!-- UPI QR box -->
+  <rect x="450" y="665" width="278" height="220" rx="16" fill="#ECFDF5" stroke="#34d399" stroke-width="1.5"/>
+  <text x="589" y="692" font-size="11" font-weight="bold" fill="#059669" text-anchor="middle" font-family="Arial,sans-serif" letter-spacing="1">UPI PAYMENT QR</text>
+  <image x="524" y="702" width="130" height="130" href="${upiQrUrl}"/>
+  <text x="589" y="858" font-size="11" fill="#059669" text-anchor="middle" font-family="Arial,sans-serif">GPay · PhonePe · Paytm</text>
+  <text x="589" y="876" font-size="10" fill="#34d399" text-anchor="middle" font-family="Arial,sans-serif">Instant UPI payment</text>
+
+  <!-- Trust badges row -->
+  <line x1="70" y1="903" x2="730" y2="903" stroke="#E5E7EB" stroke-width="1"/>
+  <text x="88" y="925" font-size="12" fill="#059669" font-family="Arial,sans-serif">&#10003; 80G Tax Exemption</text>
+  <text x="268" y="925" font-size="12" fill="#059669" font-family="Arial,sans-serif">&#10003; UPI Verified</text>
+  <text x="412" y="925" font-size="12" fill="#059669" font-family="Arial,sans-serif">&#10003; NGO Audited</text>
+  <text x="552" y="925" font-size="12" fill="#059669" font-family="Arial,sans-serif">&#10003; FCRA Aligned</text>
 
   <!-- Footer -->
-  <rect x="0" y="930" width="800" height="170" fill="rgba(0,0,0,0.3)"/>
-  <text x="400" y="985" font-size="20" font-weight="bold" fill="white" text-anchor="middle">🌿 DaanSetu — India's Trust Layer for Giving</text>
-  <text x="400" y="1010" font-size="13" fill="rgba(255,255,255,0.75)" text-anchor="middle">${campaignLink}</text>
-  <text x="400" y="1040" font-size="11" fill="rgba(255,255,255,0.5)" text-anchor="middle">Powered by DaanSetu · Verified Campaigns · Transparent Impact</text>
+  <rect x="0" y="984" width="800" height="136" fill="rgba(0,0,0,0.35)"/>
+  <text x="400" y="1022" font-size="18" font-weight="bold" fill="white" text-anchor="middle" font-family="Arial,sans-serif">DaanSetu — India&#39;s Trust Layer for Giving</text>
+  <text x="400" y="1050" font-size="12" fill="rgba(255,255,255,0.75)" text-anchor="middle" font-family="Arial,sans-serif">${esc(displayLink)}</text>
+  <text x="400" y="1075" font-size="11" fill="rgba(255,255,255,0.5)" text-anchor="middle" font-family="Arial,sans-serif">Powered by DaanSetu · Verified NGOs · Transparent Impact</text>
+  <text x="400" y="1100" font-size="10" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-family="Arial,sans-serif">Generated on ${new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</text>
 </svg>`;
 
-  const blob = new Blob([svgContent], { type: "image/svg+xml" });
+  const blob = new Blob([svgContent], { type: "image/svg+xml;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `daansetu-campaign-${campaign.id ?? "poster"}.svg`;
+  a.download = `daansetu-${(campaign.id ?? campaign.slug ?? "campaign").replace(/[^a-z0-9-]/gi, "-")}-poster.svg`;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-
 
 // ── Campaign AI Helper widget ─────────────────────────────────────────────────
 function CampaignAIHelper({ slug, campaignTitle }: { slug: string; campaignTitle: string }) {
@@ -310,6 +372,13 @@ export function CampaignLanding({ slug }: { slug: string }) {
   const scanTracked = useRef(false);
 
   const campaignLink = useMemo(() => getCampaignUrl(slug), [slug]);
+  const appHost = useMemo(() => {
+    try {
+      return new URL(campaignLink).host;
+    } catch {
+      return "daan-setu-mu.vercel.app";
+    }
+  }, [campaignLink]);
   const upiLink = useMemo(() => generateUpiLink({ amount }), [amount]);
   const upiQrUrl = useMemo(() => generateUpiQrUrl({ amount }, 220), [amount]);
   const campaignQrUrl = useMemo(() => generateQrUrl(campaignLink, 220), [campaignLink]);
@@ -336,10 +405,10 @@ export function CampaignLanding({ slug }: { slug: string }) {
   function handleWhatsApp() {
     if (!campaign) return;
     const text = buildWhatsAppShareText({
-      title: campaign.title,
-      raised: campaign.raised ?? 0,
-      goal: campaign.goal ?? 0,
+      title: campaign.title ?? "DaanSetu Campaign",
       ngoName: campaign.ngoName ?? "DaanSetu Verified NGO",
+      goal: campaign.goal ?? 0,
+      raised: campaign.raised ?? 0,
       campaignUrl: campaignLink,
     });
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
@@ -354,7 +423,7 @@ export function CampaignLanding({ slug }: { slug: string }) {
       setTimeout(() => setDonated(false), 3000);
     } catch { /* fire-and-forget */ }
     // Open UPI deep link directly in same tab to trigger native app launcher smoothly
-    window.location.href = generateUpiLink({ amount: effectiveAmount, note: campaign.title });
+    window.location.href = generateUpiLink({ amount: effectiveAmount, note: "Donation" });
     setDonating(false);
   }
 
@@ -675,7 +744,7 @@ export function CampaignLanding({ slug }: { slug: string }) {
                   <span className="font-semibold text-sm" style={{ color: "#1F2937" }}>DaanSetu</span>
                 </div>
                 <p className="text-xs" style={{ color: "#9CA3AF" }}>India's Trust Layer for Giving</p>
-                <Link href="/" className="text-xs mt-1 inline-block" style={{ color: "#0F8F5F" }}>daan-setu-mu.vercel.app</Link>
+                <Link href="/" className="text-xs mt-1 inline-block" style={{ color: "#0F8F5F" }}>{appHost}</Link>
               </div>
             </div>
           </aside>

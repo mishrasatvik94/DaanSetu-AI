@@ -41,6 +41,9 @@ async function seedLeaderboard() {
     { userId: "u_kabir", name: "Kabir Singh", avatar: "KS", city: "Delhi NCR", score: 1164, rank: 5 },
     { userId: "u_meera", name: "Meera Joshi", avatar: "MJ", city: "Pune", score: 966, rank: 6 },
     { userId: "u_aditya", name: "Aditya Rao", avatar: "AR", city: "Hyderabad", score: 840, rank: 7 },
+    { userId: "u_divya", name: "Divya Sharma", avatar: "DS", city: "Delhi NCR", score: 720, rank: 8 },
+    { userId: "u_rahul", name: "Rahul Nair", avatar: "RN", city: "Chennai", score: 620, rank: 9 },
+    { userId: "u_pooja", name: "Pooja Gupta", avatar: "PG", city: "Bengaluru", score: 540, rank: 10 },
   ];
   for (const entry of entries) {
     await upsertDocument(COL.LEADERBOARD, entry.userId, entry);
@@ -62,61 +65,82 @@ async function seedKarma() {
 // ── Seed campaigns from existing mock data ────────────────────────────────────
 async function seedCampaigns() {
   if (!(await isCollectionEmpty(COL.CAMPAIGNS))) return;
-  // Seed from the existing QR_CAMPAIGNS array (featured drives)
+
+  // Seed all QR campaigns (12 campaigns)
   for (const c of QR_CAMPAIGNS) {
-    await upsertDocument(COL.CAMPAIGNS, c.slug, {
-      id: c.slug,
+    const slug = c.slug;
+    const campaignLink = campaignUrl(slug);
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=${encodeURIComponent(campaignLink)}`;
+
+    await upsertDocument(COL.CAMPAIGNS, slug, {
+      id: slug,
+      slug,
       title: c.title,
-      story: `Support this campaign and help us reach our goal of ₹${c.goal.toLocaleString("en-IN")} for ${c.city}.`,
+      story: (c as { story?: string }).story ?? `Support this campaign and help us reach our goal of ₹${c.goal.toLocaleString("en-IN")} for ${c.city}.`,
       city: c.city,
       goal: c.goal,
       raised: c.raised,
-      creator: "DaanSetu Team",
-      supporters: Math.floor(c.raised / 500),
+      creator: getCampaignCreator(slug),
+      ngoName: getCampaignNGO(slug),
+      supporters: Math.floor(c.raised / 450),
       campaignName: c.title,
-      campaignId: c.slug,
-      qrUrl: campaignUrl(c.slug),
-      qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=${encodeURIComponent(campaignUrl(c.slug))}`,
-      scanCount: 0,
+      campaignId: slug,
+      qrUrl: campaignLink,
+      qrCodeUrl,
+      scanCount: Math.floor(c.raised / 800),
+      trustScore: Math.floor(78 + Math.random() * 18),
+      verified: true,
+      urgency: getCampaignUrgency(c.raised, c.goal),
+      beneficiaryCount: Math.floor(c.goal / 75),
+      daysRemaining: c.days,
       createdAt: serverTimestamp(),
     });
   }
-  // Also seed 2 personal campaigns
-  const personal = [
-    {
-      id: "aanya-1000-meals",
-      title: "Aanya's 1,000 Meals Pledge",
-      story: "For my 25th birthday, I'm skipping the party and pledging 1,000 meals to families in Dharavi. Every ₹50 = one full meal. Help me hit the goal in 14 days.",
-      goal: 50000,
-      raised: 34200,
-      creator: "Aanya Kapoor",
-      city: "Mumbai",
-      supporters: 184,
-      campaignName: "Aanya's 1,000 Meals Pledge",
-      campaignId: "aanya-1000-meals",
-      qrUrl: campaignUrl("aanya-1000-meals"),
-      scanCount: 0,
-      createdAt: serverTimestamp(),
-    },
-    {
-      id: "rohan-monsoon-relief",
-      title: "Rohan's Monsoon Kitchen",
-      story: "Bengaluru's rains hit hardest where it hurts most. I'm raising for hot meals to displaced families across HSR and Bellandur shelters.",
-      goal: 80000,
-      raised: 41600,
-      creator: "Rohan Verma",
-      city: "Bengaluru",
-      supporters: 122,
-      campaignName: "Rohan's Monsoon Kitchen",
-      campaignId: "rohan-monsoon-relief",
-      qrUrl: campaignUrl("rohan-monsoon-relief"),
-      scanCount: 0,
-      createdAt: serverTimestamp(),
-    },
-  ];
-  for (const c of personal) {
-    await upsertDocument(COL.CAMPAIGNS, c.id, c);
-  }
+}
+
+function getCampaignCreator(slug: string): string {
+  const map: Record<string, string> = {
+    "aanya-1000-meals": "Aanya Kapoor",
+    "rohan-monsoon-relief": "Rohan Verma",
+    "republic-day": "DaanSetu Team",
+    "migrant-workers-noida": "Priya Iyer",
+    "school-kits-delhi-slums": "Teach For India",
+    "medical-aid-jaipur": "CARE India Volunteers",
+    "emergency-rations-gurgaon": "Goonj Delhi NCR",
+    "mumbai-daily-wage-kitchen": "Robin Hood Army",
+    "elderly-meals-lucknow": "HelpAge India",
+    "menstrual-hygiene-kits": "Smile Foundation",
+    "flood-relief-assam": "Give India Foundation",
+    "street-animal-feeding": "Mumbai Pet Welfare",
+    "campus-feeds": "Bhumi",
+  };
+  return map[slug] ?? "DaanSetu Community";
+}
+
+function getCampaignNGO(slug: string): string {
+  const map: Record<string, string> = {
+    "aanya-1000-meals": "DaanSetu Verified NGO",
+    "rohan-monsoon-relief": "Feeding India",
+    "republic-day": "Pan-India NGO Network",
+    "migrant-workers-noida": "Goonj",
+    "school-kits-delhi-slums": "Deepalaya",
+    "medical-aid-jaipur": "CARE India",
+    "emergency-rations-gurgaon": "Goonj NCR",
+    "mumbai-daily-wage-kitchen": "Robin Hood Army",
+    "elderly-meals-lucknow": "HelpAge India",
+    "menstrual-hygiene-kits": "Smile Foundation",
+    "flood-relief-assam": "GiveIndia Foundation",
+    "street-animal-feeding": "DaanSetu Community",
+    "campus-feeds": "Akshaya Patra",
+  };
+  return map[slug] ?? "DaanSetu Verified NGO";
+}
+
+function getCampaignUrgency(raised: number, goal: number): string {
+  const pct = raised / goal;
+  if (pct < 0.4) return "high";
+  if (pct < 0.7) return "medium";
+  return "low";
 }
 
 // ── Main seed entry point ─────────────────────────────────────────────────────
