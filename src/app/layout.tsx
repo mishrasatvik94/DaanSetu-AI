@@ -5,12 +5,13 @@ import type { ReactNode } from "react";
 import { RootClient } from "@/components/RootClient";
 
 export const metadata: Metadata = {
-  title: "DaanSetu",
-  applicationName: "DaanSetu",
+  title: "DaanSetu AI",
+  description: "AI-powered bridge between donors, NGOs, and urgent community needs.",
+  applicationName: "DaanSetu AI",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "DaanSetu",
+    title: "DaanSetu AI",
   },
   formatDetection: {
     telephone: false,

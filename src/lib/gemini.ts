@@ -6,7 +6,7 @@
  * GEMINI_API_KEY is read lazily at call time (never at module load).
  */
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
 const MODEL = process.env.GEMINI_MODEL ?? "gemini-1.5-flash";
 
@@ -67,15 +67,17 @@ export async function generateGeminiResponse(
   const key = process.env.GEMINI_API_KEY;
 
   if (!key) {
-    const err = new Error("[Gemini] GEMINI_API_KEY is not set");
-    throw err;
+    return {
+      text: "Namaste 🙏 DaanSetu AI is temporarily unavailable. Please try again shortly.",
+      actions: inferActions("Namaste 🙏 DaanSetu AI is temporarily unavailable. Please try again shortly."),
+      error: true,
+    };
   }
 
   if (!userMessage.trim()) {
     return { text: "Please send a message.", error: true };
   }
 
-  // Build full prompt: system + context + history + user message
   const historyLines = history
     .slice(-6)
     .filter((m) => m.parts?.[0]?.text?.trim())
@@ -93,18 +95,16 @@ export async function generateGeminiResponse(
     .join("\n");
 
   try {
-    const genAI = new GoogleGenerativeAI(key);
-    const model = genAI.getGenerativeModel({
-      model: MODEL,
-      generationConfig: {
-        temperature: 0.7,
-        topP: 0.9,
-        maxOutputTokens: 400,
-      },
+    const ai = new GoogleGenAI({
+      apiKey: key,
     });
 
-    const result = await model.generateContent(fullPrompt);
-    const text = result.response.text()?.trim();
+    const result = await ai.models.generateContent({
+      model: MODEL,
+      contents: fullPrompt,
+    });
+
+    const text = result.text?.trim();
 
     if (!text) {
       throw new Error("[Gemini] Empty response from API");

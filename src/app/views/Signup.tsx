@@ -71,8 +71,8 @@ export function Signup() {
     <main style={{ backgroundColor: "#FAFAF8" }} className="min-h-[calc(100vh-4rem)] flex items-center px-6 py-16">
       <div className="max-w-md mx-auto w-full">
         <div className="rounded-2xl border border-slate-200 bg-white p-8">
-          <h1 className="tracking-tight" style={{ color: "#1F2937", fontSize: "1.75rem", lineHeight: 1.15, fontWeight: 600 }}>Join DaanSetu</h1>
-          <p className="mt-1 text-sm" style={{ color: "#6B7280" }}>Bharat donates on chat. Start in under a minute.</p>
+          <h1 className="tracking-tight" style={{ color: "#1F2937", fontSize: "1.75rem", lineHeight: 1.15, fontWeight: 600 }}>Join DaanSetu AI</h1>
+          <p className="mt-1 text-sm" style={{ color: "#6B7280" }}>Give smarter. Impact faster. Start in under a minute.</p>
 
           <div className="mt-6 grid grid-cols-2 gap-2 p-1 rounded-xl bg-slate-100">
             {(["donor", "ngo"] as const).map((r) => (

@@ -5,6 +5,9 @@ export type NGOCategory =
   | "Disaster Relief"
   | "Education"
   | "Women Empowerment"
+  | "Child Health"
+  | "Health & Nutrition"
+  | "Nutrition"
   | "Healthcare"
   | "Rural Development";
 
@@ -24,7 +27,7 @@ export type NGOGalleryItem = {
 export type NGONeed = {
   title: string;
   detail: string;
-  priority: "Immediate" | "This week" | "Ongoing";
+  priority: "Immediate" | "This week" | "This month" | "Ongoing";
   quantity: string;
 };
 
@@ -65,6 +68,9 @@ export const NGO_CATEGORIES: NGOCategory[] = [
   "Disaster Relief",
   "Education",
   "Women Empowerment",
+  "Child Health",
+  "Health & Nutrition",
+  "Nutrition",
   "Healthcare",
   "Rural Development",
 ];

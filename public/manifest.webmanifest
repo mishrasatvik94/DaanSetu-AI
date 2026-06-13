@@ -1,7 +1,7 @@
 {
-  "name": "DaanSetu — From extra food to full plates",
-  "short_name": "DaanSetu",
-  "description": "Donate surplus food in minutes. WhatsApp + AI route every meal to verified NGOs nearby.",
+  "name": "DaanSetu AI",
+  "short_name": "DaanSetu AI",
+  "description": "AI-powered bridge between donors, NGOs, and urgent community needs.",
   "id": "/",
   "start_url": "/?source=pwa",
   "scope": "/",
@@ -12,15 +12,15 @@
   "background_color": "#FAFAF8",
   "lang": "en-IN",
   "dir": "ltr",
-  "categories": ["food", "social", "lifestyle", "productivity"],
+  "categories": ["social", "lifestyle", "productivity"],
   "icons": [
     { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
     { "src": "/icons/icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
   ],
   "shortcuts": [
-    { "name": "Donate now", "short_name": "Donate", "description": "Open Setu AI to donate surplus food", "url": "/ai-assistant?source=shortcut" },
-    { "name": "My KarmaScore", "short_name": "Karma", "description": "See your KarmaScore and badges", "url": "/karma?source=shortcut" },
-    { "name": "Live impact", "short_name": "Impact", "description": "Real-time donation feed", "url": "/dashboard?source=shortcut" }
+    { "name": "Find a match", "short_name": "AI Match", "description": "Match a donor request to a verified NGO need", "url": "/ai-match?source=shortcut" },
+    { "name": "Donor dashboard", "short_name": "Donor", "description": "Open donor recommendations and impact", "url": "/donor?source=shortcut" },
+    { "name": "Live impact", "short_name": "Impact", "description": "Real-time donation dashboard", "url": "/dashboard?source=shortcut" }
   ],
   "prefer_related_applications": false
 }

@@ -57,7 +57,7 @@ export function Login() {
       <div className="max-w-md mx-auto w-full">
         <div className="rounded-2xl border border-slate-200 bg-white p-8">
           <h1 className="tracking-tight" style={{ color: "#1F2937", fontSize: "1.75rem", lineHeight: 1.15, fontWeight: 600 }}>Welcome back</h1>
-          <p className="mt-1 text-sm" style={{ color: "#6B7280" }}>Sign in to your DaanSetu account.</p>
+          <p className="mt-1 text-sm" style={{ color: "#6B7280" }}>Log in to continue your impact journey.</p>
 
           <form className="mt-7 space-y-4" onSubmit={submit}>
             <div>
@@ -101,7 +101,7 @@ export function Login() {
           </button>
 
           <div className="mt-6 text-center text-xs" style={{ color: "#6B7280" }}>
-            New to DaanSetu? <Link href="/signup" style={{ color: "#0F8F5F" }}>Create an account</Link>
+            New to DaanSetu AI? <Link href="/signup" style={{ color: "#0F8F5F" }}>Create an account</Link>
           </div>
         </div>
       </div>

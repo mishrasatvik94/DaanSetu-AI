@@ -30,6 +30,7 @@ export const COL = {
   KARMA: "karma",
   LEADERBOARD: "leaderboard",
   CAMPAIGNS: "campaigns",
+  NEEDS: "needs",
   CHAT_SESSIONS: "chat_sessions",
   PICKUP_REQUESTS: "pickup_requests",
   USERS: "users",
@@ -124,6 +125,46 @@ export interface DonationPayload {
 
 export async function createDonation(payload: DonationPayload): Promise<string | null> {
   return addDocument(COL.DONATIONS, payload);
+}
+
+// Need service
+
+export type NeedCategory = "Food" | "Clothes" | "Education" | "Medical" | "Emergency";
+export type NeedUrgency = "Low" | "Medium" | "High";
+
+export interface NeedDoc {
+  id: string;
+  title: string;
+  category: NeedCategory;
+  location: string;
+  quantity: string;
+  urgency: NeedUrgency;
+  description: string;
+  ngoName: string;
+  verified?: boolean;
+  trustScore?: number;
+  fulfilled?: boolean;
+  createdAt?: unknown;
+}
+
+export type NeedInput = Omit<NeedDoc, "id" | "createdAt">;
+
+export async function addNeed(payload: NeedInput): Promise<string | null> {
+  return addDocument(COL.NEEDS, {
+    ...payload,
+    verified: payload.verified ?? true,
+    trustScore: payload.trustScore ?? 86,
+    fulfilled: payload.fulfilled ?? false,
+  });
+}
+
+export async function getNeeds(): Promise<NeedDoc[]> {
+  return fetchCollection<NeedDoc>(COL.NEEDS, [orderBy("createdAt", "desc"), limit(50)]);
+}
+
+export async function getUrgentNeeds(): Promise<NeedDoc[]> {
+  const needs = await getNeeds();
+  return needs.filter((need) => need.urgency === "High");
 }
 
 // ── Karma service ─────────────────────────────────────────────────────────────

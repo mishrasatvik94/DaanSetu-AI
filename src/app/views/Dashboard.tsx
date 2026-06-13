@@ -1,109 +1,92 @@
-import { useMemo, useState } from "react";
-import { AreaChart, Area, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
-import { TrendingUp, Activity, MapPin, Truck, Users } from "lucide-react";
-import { PageHeader } from "./PageHeader";
-import { COLORS, tooltipStyle } from "./dashboard/constants";
-import { RANGES, type Range, buildSeries, CITY_DIST, RECENT } from "./dashboard/mock";
-import { Card, CityDistribution, LiveFeed, LivePill, LiveStats, VolunteerActivity } from "./dashboard/components";
-import { useLiveDashboardSummary } from "@/lib/use-firestore";
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { CheckCircle2, HeartHandshake, ListChecks, Siren } from "lucide-react";
+import { getNeeds, type NeedDoc } from "@/lib/firestore-service";
+import { SAMPLE_NEEDS } from "@/app/data/needs";
 
 export function Dashboard() {
-  const [range, setRange] = useState<Range>("7d");
-  const series = useMemo(() => buildSeries(range), [range]);
-  const cities = useMemo(() => CITY_DIST, []);
-  const { stats, feed } = useLiveDashboardSummary();
+  const [needs, setNeeds] = useState<NeedDoc[]>(SAMPLE_NEEDS);
+
+  useEffect(() => {
+    let cancelled = false;
+    getNeeds().then((docs) => {
+      if (!cancelled && docs.length > 0) setNeeds(docs);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const stats = useMemo(() => {
+    const urgent = needs.filter((need) => need.urgency === "High").length;
+    const fulfilled = needs.filter((need) => need.fulfilled).length;
+    return [
+      { title: "Total Donations", value: "128", icon: HeartHandshake },
+      { title: "Active NGO Requests", value: String(needs.filter((need) => !need.fulfilled).length), icon: ListChecks },
+      { title: "Fulfilled Requests", value: String(fulfilled), icon: CheckCircle2 },
+      { title: "Urgent Needs", value: String(urgent), icon: Siren },
+    ];
+  }, [needs]);
+
+  const chartData = useMemo(() => {
+    const categories = ["Food", "Clothes", "Education", "Medical", "Emergency"] as const;
+    return categories.map((category) => ({
+      category,
+      active: needs.filter((need) => need.category === category && !need.fulfilled).length,
+      urgent: needs.filter((need) => need.category === category && need.urgency === "High").length,
+    }));
+  }, [needs]);
 
   return (
-    <main style={{ backgroundColor: COLORS.cream }} className="min-h-[calc(100vh-4rem)]">
-      <PageHeader eyebrow="LIVE IMPACT" title="Real-time impact dashboard" subtitle="Every meal, every pickup, every volunteer — accounted for in real time." />
+    <main className="min-h-[calc(100vh-4rem)] px-6 py-14" style={{ backgroundColor: "#FAFAF8" }}>
+      <div className="mx-auto max-w-6xl">
+        <div className="max-w-2xl">
+          <div className="text-xs tracking-wider" style={{ color: "#0F8F5F", fontWeight: 600 }}>REAL-TIME IMPACT DASHBOARD</div>
+          <h1 className="mt-3 tracking-tight" style={{ color: "#1F2937", fontSize: "clamp(2rem, 4vw, 3rem)", lineHeight: 1.1, fontWeight: 600 }}>
+            Firebase-powered tracking for every need.
+          </h1>
+          <p className="mt-4" style={{ color: "#4B5563", lineHeight: 1.7 }}>
+            Demo metrics combine Firestore requests with fallback sample data, so judges can see the impact flow even offline.
+          </p>
+        </div>
 
-      <div className="max-w-6xl mx-auto px-6 pb-20 space-y-6">
-        {/* Range tabs + live pill */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="inline-flex items-center gap-1 p-1 rounded-xl border border-slate-200 bg-white">
-            {RANGES.map((r) => (
-              <button key={r} onClick={() => setRange(r)} className="text-sm px-3 py-1.5 rounded-lg transition" style={{ backgroundColor: range === r ? COLORS.primary : "transparent", color: range === r ? "#fff" : COLORS.muted, fontWeight: range === r ? 500 : 400 }}>
-                {r}
-              </button>
-            ))}
+        <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {stats.map((stat) => {
+            const Icon = stat.icon;
+            return (
+              <section key={stat.title} className="rounded-xl border border-slate-200 bg-white p-5">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm" style={{ color: "#4B5563" }}>{stat.title}</span>
+                  <Icon className="h-5 w-5" style={{ color: "#0F8F5F" }} />
+                </div>
+                <div className="mt-4" style={{ color: "#1F2937", fontSize: "2rem", fontWeight: 600 }}>{stat.value}</div>
+              </section>
+            );
+          })}
+        </div>
+
+        <section className="mt-6 rounded-xl border border-slate-200 bg-white p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 style={{ color: "#1F2937", fontWeight: 600 }}>Need categories</h2>
+              <p className="text-sm" style={{ color: "#6B7280" }}>Active and urgent requests by donation type.</p>
+            </div>
+            <span className="rounded-full px-3 py-1 text-xs" style={{ backgroundColor: "#E8F5EE", color: "#0F8F5F" }}>Live-ready</span>
           </div>
-          <LivePill />
-        </div>
-
-        {/* Stat tiles */}
-        <LiveStats stats={stats} />
-
-        {/* Meals served area chart + Pickups bar */}
-        <div className="grid lg:grid-cols-[1.6fr_1fr] gap-4">
-          <Card title="Meals served" subtitle={`Trend · ${range}`} accent={<Activity className="w-4 h-4" style={{ color: COLORS.primary }} />}>
-            <div className="h-64">
-              <ResponsiveContainer>
-                <AreaChart data={series} margin={{ top: 10, right: 10, bottom: 0, left: -16 }}>
-                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: COLORS.muted }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: COLORS.muted }} axisLine={false} tickLine={false} width={40} />
-                  <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: COLORS.primary, strokeOpacity: 0.2 }} />
-                  <Area type="monotone" dataKey="meals" stroke={COLORS.primary} strokeWidth={2.2} fill={COLORS.primary} fillOpacity={0.15} isAnimationActive={false} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-
-          <Card title="Pickups completed" subtitle={`Daily · ${range}`} accent={<Truck className="w-4 h-4" style={{ color: COLORS.primary }} />}>
-            <div className="h-64">
-              <ResponsiveContainer>
-                <BarChart data={series} margin={{ top: 10, right: 10, bottom: 0, left: -16 }}>
-                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: COLORS.muted }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: COLORS.muted }} axisLine={false} tickLine={false} width={28} />
-                  <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(15,143,95,0.06)" }} />
-                  <Bar dataKey="pickups" fill={COLORS.primary} radius={[6, 6, 0, 0]} isAnimationActive={false} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-        </div>
-
-        {/* Live feed + city distribution */}
-        <div className="grid lg:grid-cols-[1fr_1fr] gap-4">
-          <Card title="Live donation feed" subtitle="Real pickups across India" accent={<span className="inline-flex w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: COLORS.primary }} />}>
-            <LiveFeed items={feed} />
-          </Card>
-
-          <Card title="City distribution" subtitle="Meals served by city" accent={<MapPin className="w-4 h-4" style={{ color: COLORS.primary }} />}>
-            <CityDistribution cities={cities} />
-          </Card>
-        </div>
-
-        {/* Recent pickups + volunteer activity */}
-        <div className="grid lg:grid-cols-[1.4fr_1fr] gap-4">
-          <Card title="Recent pickups" subtitle="Verified handoffs across NGO partners" accent={<TrendingUp className="w-4 h-4" style={{ color: COLORS.primary }} />}>
-            <div className="overflow-hidden rounded-xl border border-slate-200">
-              <div className="px-4 py-2.5 text-xs grid grid-cols-[1fr_90px_120px_100px] gap-3" style={{ backgroundColor: COLORS.cream, color: COLORS.muted }}>
-                <span>Donor</span><span>Meals</span><span>NGO</span><span className="text-right">Status</span>
-              </div>
-              <div className="divide-y divide-slate-100">
-                {RECENT.map((r) => (
-                  <div key={r.id} className="px-4 py-3 grid grid-cols-[1fr_90px_120px_100px] gap-3 items-center text-sm">
-                    <div className="min-w-0">
-                      <div className="truncate" style={{ color: COLORS.ink }}>{r.donor}</div>
-                      <div className="text-xs" style={{ color: COLORS.muted }}>{r.area}</div>
-                    </div>
-                    <div style={{ color: COLORS.ink }}>{r.meals}</div>
-                    <div className="text-xs truncate" style={{ color: COLORS.muted }}>{r.ngo}</div>
-                    <div className="text-xs text-right">
-                      <span className="px-2 py-1 rounded-full" style={{ backgroundColor: r.status === "Delivered" ? "#E8F5EE" : r.status === "On route" ? "#FBF5DE" : "#F5F7F6", color: r.status === "Delivered" ? COLORS.primary : r.status === "On route" ? "#9A7B0F" : COLORS.muted }}>
-                        {r.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Card>
-
-          <Card title="Volunteer activity" subtitle="Hours logged this week" accent={<Users className="w-4 h-4" style={{ color: COLORS.primary }} />}>
-            <VolunteerActivity />
-          </Card>
-        </div>
+          <div className="mt-6 h-72">
+            <ResponsiveContainer>
+              <BarChart data={chartData} margin={{ top: 10, right: 10, bottom: 0, left: -18 }}>
+                <XAxis dataKey="category" tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #E2E8F0" }} cursor={{ fill: "rgba(15,143,95,0.06)" }} />
+                <Bar dataKey="active" fill="#0F8F5F" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="urgent" fill="#D4AF37" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
       </div>
     </main>
   );

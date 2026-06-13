@@ -1,7 +1,15 @@
 import { Button } from "./ui/button";
-import { ArrowRight, MessageCircle, MapPin, Check } from "lucide-react";
+import { ArrowRight, Check, MessageCircle, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AIAvatar } from "./AIAvatar";
+
+const valuePoints = [
+  "AI donation matching",
+  "Verified NGO needs",
+  "Real-time impact dashboard",
+  "WhatsApp-based access",
+  "Firebase-powered tracking",
+];
 
 export function Hero() {
   const router = useRouter();
@@ -11,26 +19,32 @@ export function Hero() {
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-slate-200 bg-white text-xs" style={{ color: "#0F8F5F" }}>
             <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#0F8F5F" }} />
-            Now live in 14 cities across India
+            PS 02: Improve an Existing Technology
           </div>
           <h1 className="mt-6 tracking-tight" style={{ color: "#1F2937", fontSize: "clamp(2.25rem, 4.5vw, 3.75rem)", lineHeight: 1.1, fontWeight: 600 }}>
-            आपका बचा खाना,<br />किसी की अगली मुस्कान।
+            DaanSetu AI
           </h1>
-          <p className="mt-5 max-w-md" style={{ color: "#4B5563", fontSize: "1.0625rem", lineHeight: 1.6 }}>
-            DaanSetu WhatsApp aur AI ke through extra food ko verified NGOs tak minutes mein pahunchata hai.
+          <p className="mt-4 text-xl" style={{ color: "#0F8F5F", fontWeight: 600 }}>
+            Give smarter. Impact faster.
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button size="lg" className="text-white hover:opacity-90" style={{ backgroundColor: "#0F8F5F" }} onClick={() => router.push("/signup")}>
-              Donate Now <ArrowRight className="ml-1 w-4 h-4" />
-            </Button>
-            <Button size="lg" variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-50" onClick={() => router.push("/ai-assistant")}>
-              Try AI Assistant
-            </Button>
+          <p className="mt-4 max-w-md" style={{ color: "#4B5563", fontSize: "1.0625rem", lineHeight: 1.6 }}>
+            AI-powered bridge between donors, NGOs, and urgent community needs.
+          </p>
+          <div className="mt-6 grid gap-2 text-sm" style={{ color: "#4B5563" }}>
+            {valuePoints.map((point) => (
+              <div key={point} className="flex items-center gap-2">
+                <Check className="h-4 w-4" style={{ color: "#0F8F5F" }} />
+                <span>{point}</span>
+              </div>
+            ))}
           </div>
-          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs" style={{ color: "#6B7280" }}>
-            <div className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5" style={{ color: "#0F8F5F" }} /> 80G tax-exempt receipts</div>
-            <div className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5" style={{ color: "#0F8F5F" }} /> Verified NGO network</div>
-            <div className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5" style={{ color: "#0F8F5F" }} /> Free for donors</div>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Button size="lg" className="text-white hover:opacity-90" style={{ backgroundColor: "#0F8F5F" }} onClick={() => router.push("/donor")}>
+              Donor Dashboard <ArrowRight className="ml-1 w-4 h-4" />
+            </Button>
+            <Button size="lg" variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-50" onClick={() => router.push("/ai-match")}>
+              Try AI Match
+            </Button>
           </div>
         </div>
 
@@ -43,7 +57,7 @@ export function Hero() {
                 <div className="w-2 h-2 rounded-full bg-amber-300" />
                 <div className="w-2 h-2 rounded-full bg-green-400" />
               </div>
-              <span className="text-xs text-slate-400">daansetu.in/donate</span>
+              <span className="text-xs text-slate-400">daansetu.ai/ai-match</span>
             </div>
 
             <div className="pt-5 space-y-3">
@@ -53,20 +67,20 @@ export function Hero() {
                 </div>
                 <div className="flex-1">
                   <div className="rounded-2xl rounded-tl-sm bg-slate-100 px-4 py-2.5 text-sm inline-block" style={{ color: "#1F2937" }}>
-                    Hi, I have 30 meals from a wedding in Bandra.
+                    I want to donate Rs 1000 for education near Delhi.
                   </div>
                 </div>
               </div>
 
               <div className="flex gap-3 items-start justify-end">
                 <div className="rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm text-white inline-block max-w-[80%]" style={{ backgroundColor: "#0F8F5F" }}>
-                  Found <strong>Robin Hood Army</strong> 1.2 km away. Pickup in 18 min?
+                  Best match: <strong>Shiksha Foundation</strong> needs school kits in Delhi.
                 </div>
               </div>
 
               <div className="flex gap-3 items-start justify-end">
                 <div className="rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm text-white inline-block" style={{ backgroundColor: "#0F8F5F" }}>
-                  ✓ Confirmed. Volunteer Rahul is on the way.
+                  Confirmed. Your donation can support 5 students.
                 </div>
               </div>
             </div>
@@ -75,13 +89,13 @@ export function Hero() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs" style={{ color: "#4B5563" }}>
                   <MapPin className="w-3.5 h-3.5" style={{ color: "#0F8F5F" }} />
-                  Pickup confirmed
+                  AI match ready
                 </div>
                 <span className="text-xs px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: "#0F8F5F" }}>Live</span>
               </div>
               <div className="mt-2 flex items-baseline justify-between">
-                <span style={{ color: "#1F2937", fontSize: "1.5rem", fontWeight: 600 }}>30 meals</span>
-                <span className="text-xs" style={{ color: "#6B7280" }}>ETA 18 min</span>
+                <span style={{ color: "#1F2937", fontSize: "1.5rem", fontWeight: 600 }}>Trust 86/100</span>
+                <span className="text-xs" style={{ color: "#6B7280" }}>High urgency</span>
               </div>
             </div>
           </div>
@@ -91,7 +105,7 @@ export function Hero() {
               <svg className="w-4 h-4" style={{ color: "#D4AF37" }} viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z" /></svg>
             </div>
             <div>
-              <div className="text-xs" style={{ color: "#6B7280" }}>Karma earned</div>
+              <div className="text-xs" style={{ color: "#6B7280" }}>Impact Score</div>
               <div style={{ color: "#1F2937", fontWeight: 600 }}>+120 pts</div>
             </div>
           </div>

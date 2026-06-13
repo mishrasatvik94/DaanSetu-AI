@@ -32,15 +32,14 @@ export function Navbar() {
           <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#0F8F5F" }}>
             <svg viewBox="0 0 24 24" className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L4 7v10l8 5 8-5V7z" /><path d="M12 22V12" /><path d="M4 7l8 5 8-5" /></svg>
           </div>
-          <span style={{ color: "#1F2937", fontWeight: 600 }}>DaanSetu</span>
+          <span style={{ color: "#1F2937", fontWeight: 600 }}>DaanSetu AI</span>
         </Link>
         <div className="hidden md:flex items-center gap-8 text-sm" style={{ color: "#4B5563" }}>
-          <Link href="/ngos" className={linkClass("/ngos")}>NGOs</Link>
-          <Link href="/impact" className={linkClass("/impact")}>Impact</Link>
-          <Link href="/karma" className={linkClass("/karma")}>KarmaScore</Link>
-          <Link href="/leaderboard" className={linkClass("/leaderboard")}>Leaderboard</Link>
-          <Link href="/qr-campaign" className={linkClass("/qr-campaign")}>QR Campaigns</Link>
-          <Link href="/ai-assistant" className={linkClass("/ai-assistant")}>AI Assistant</Link>
+          <Link href="/donor" className={linkClass("/donor")}>Donor</Link>
+          <Link href="/ngo" className={linkClass("/ngo")}>NGO</Link>
+          <Link href="/ai-match" className={linkClass("/ai-match")}>AI Match</Link>
+          <Link href="/dashboard" className={linkClass("/dashboard")}>Dashboard</Link>
+          <Link href="/whatsapp" className={linkClass("/whatsapp")}>WhatsApp</Link>
         </div>
         <div className="flex items-center gap-2">
           {user ? (
