@@ -90,6 +90,8 @@ export function useLiveDashboardSummary() {
   const [campaigns, setCampaigns] = useState<FirestoreDoc[]>([]);
 
   useEffect(() => {
+    if (!db) return;
+
     const unsubscribers = [
       onSnapshot(collection(db, COL.CHAT_SESSIONS), (snap) => setChatSessions(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as FirestoreDoc[])),
       onSnapshot(collection(db, COL.PICKUP_REQUESTS), (snap) => setPickupRequests(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as FirestoreDoc[])),
@@ -256,6 +258,11 @@ export function useCampaigns() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!db) {
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onSnapshot(collection(db, COL.CAMPAIGNS), (snap) => {
       const docs = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as CampaignDoc));
       setCampaigns(docs.length > 0 ? docs.map(fsToCampaign).sort((a, b) => b.createdAt - a.createdAt) : []);
@@ -277,6 +284,7 @@ export function useCampaignBySlug(slug: string) {
 
   useEffect(() => {
     if (!slug) { setLoading(false); setNotFound(true); return; }
+    if (!db) { setLoading(false); setNotFound(true); return; }
     let cancelled = false;
 
     const docRef = doc(db, COL.CAMPAIGNS, slug);

@@ -23,6 +23,13 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 
+function requireDb() {
+  if (!db) {
+    throw new Error("Firestore is unavailable");
+  }
+  return db;
+}
+
 // ── Collection names ─────────────────────────────────────────────────────────
 export const COL = {
   NGOS: "ngos",
@@ -43,8 +50,9 @@ export async function fetchCollection<T>(
   colName: string,
   constraints: QueryConstraint[] = []
 ): Promise<T[]> {
+  if (!db) return [];
   try {
-    const ref = collection(db, colName);
+    const ref = collection(requireDb(), colName);
     const q = constraints.length > 0 ? query(ref, ...constraints) : ref;
     const snap = await getDocs(q);
     return snap.docs.map((d) => ({ id: d.id, ...d.data() } as T));
@@ -56,8 +64,9 @@ export async function fetchCollection<T>(
 
 /** Fetch a single document by ID. Returns null on miss or error. */
 export async function fetchDoc<T>(colName: string, docId: string): Promise<T | null> {
+  if (!db) return null;
   try {
-    const snap = await getDoc(doc(db, colName, docId));
+    const snap = await getDoc(doc(requireDb(), colName, docId));
     if (!snap.exists()) return null;
     return { id: snap.id, ...snap.data() } as T;
   } catch (err) {
@@ -71,8 +80,9 @@ export async function addDocument(
   colName: string,
   data: DocumentData
 ): Promise<string | null> {
+  if (!db) return null;
   try {
-    const ref = await addDoc(collection(db, colName), {
+    const ref = await addDoc(collection(requireDb(), colName), {
       ...data,
       createdAt: serverTimestamp(),
     });
@@ -90,8 +100,9 @@ export async function upsertDocument(
   data: DocumentData,
   merge = true
 ): Promise<void> {
+  if (!db) return;
   try {
-    await setDoc(doc(db, colName, docId), data, { merge });
+    await setDoc(doc(requireDb(), colName, docId), data, { merge });
   } catch (err) {
     console.warn(`[Firestore] upsertDocument(${colName}/${docId}) failed:`, err);
   }
@@ -326,8 +337,9 @@ export async function upsertChatSession(userId: string, data: Partial<ChatSessio
 
 /** Returns true if a collection is empty (has no documents). */
 export async function isCollectionEmpty(colName: string): Promise<boolean> {
+  if (!db) return true;
   try {
-    const snap = await getDocs(query(collection(db, colName), limit(2)));
+    const snap = await getDocs(query(collection(requireDb(), colName), limit(2)));
     if (snap.empty) return true;
     return !snap.docs.some((d) => d.id !== "_meta");
   } catch {

@@ -51,13 +51,27 @@ function emit() {
   listeners.forEach((l) => l());
 }
 
+function requireAuth() {
+  if (!auth) {
+    throw new Error("Firebase Auth is unavailable");
+  }
+  return auth;
+}
+
+function requireDb() {
+  if (!db) {
+    throw new Error("Firestore is unavailable");
+  }
+  return db;
+}
+
 // Bootstrap: listen to Firebase auth state changes
-if (typeof window !== "undefined") {
+if (typeof window !== "undefined" && auth && db) {
   onAuthStateChanged(auth, async (firebaseUser) => {
     if (firebaseUser) {
       // Try to load rich profile from Firestore
       try {
-        const snap = await getDoc(doc(db, "users", firebaseUser.uid));
+        const snap = await getDoc(doc(requireDb(), "users", firebaseUser.uid));
         if (snap.exists()) {
           const data = snap.data();
           cachedUser = {
@@ -116,7 +130,7 @@ async function upsertFirestoreUser(
     role: "donor" | "ngo";
   }
 ) {
-  const ref = doc(db, "users", uid);
+  const ref = doc(requireDb(), "users", uid);
   const snap = await getDoc(ref);
   if (!snap.exists()) {
     await setDoc(ref, {
@@ -141,7 +155,7 @@ async function upsertFirestoreUser(
  */
 export async function signIn(email: string, password: string): Promise<User> {
   try {
-    await signInWithEmailAndPassword(auth, email, password);
+    await signInWithEmailAndPassword(requireAuth(), email, password);
     // onAuthStateChanged will update cachedUser; caller can await the next emit
     return cachedUser!;
   } catch (err) {
@@ -162,7 +176,7 @@ export async function signUp(input: {
 }): Promise<User> {
   try {
     const { user: fbUser } = await createUserWithEmailAndPassword(
-      auth,
+      requireAuth(),
       input.email,
       input.password
     );
@@ -188,7 +202,7 @@ export async function signUp(input: {
 export async function signInWithGoogle(role: "donor" | "ngo" = "donor"): Promise<User> {
   try {
     const provider = new GoogleAuthProvider();
-    const { user: fbUser } = await signInWithPopup(auth, provider);
+    const { user: fbUser } = await signInWithPopup(requireAuth(), provider);
     await upsertFirestoreUser(fbUser.uid, {
       name: fbUser.displayName ?? fbUser.email?.split("@")[0] ?? "User",
       email: fbUser.email ?? "",
@@ -207,13 +221,13 @@ export async function signInWithGoogle(role: "donor" | "ngo" = "donor"): Promise
 
 /** Sign out the current user. */
 export async function signOut(): Promise<void> {
-  await firebaseSignOut(auth);
+  await firebaseSignOut(requireAuth());
 }
 
 /** Send a password reset email. Throws user-friendly Error on failure. */
 export async function sendPasswordResetEmail(email: string): Promise<void> {
   try {
-    await firebaseSendPasswordReset(auth, email);
+    await firebaseSendPasswordReset(requireAuth(), email);
   } catch (err) {
     throw new Error(mapAuthError(err as FirebaseError));
   }
@@ -230,7 +244,7 @@ export async function updateUser(patch: Partial<User>): Promise<void> {
   cachedUser = { ...cachedUser, ...patch };
   emit();
   // Persist to Firestore (exclude 'id' which is the doc path, not a field)
-  const ref = doc(db, "users", cachedUser.id);
+  const ref = doc(requireDb(), "users", cachedUser.id);
   const { id: _id, ...rest } = patch;
   void setDoc(ref, { ...rest }, { merge: true }).catch(console.error);
 }

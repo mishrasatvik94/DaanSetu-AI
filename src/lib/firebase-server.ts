@@ -11,6 +11,18 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+function initServerDb() {
+  if (!firebaseConfig.apiKey) {
+    return null;
+  }
 
-export const serverDb = getFirestore(app);
+  try {
+    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    return getFirestore(app);
+  } catch (error) {
+    console.warn("[Firebase] server DB unavailable:", error);
+    return null;
+  }
+}
+
+export const serverDb: any = initServerDb();

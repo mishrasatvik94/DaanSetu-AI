@@ -23,13 +23,25 @@ const firebaseConfig = {
 };
 
 // ── Singleton Firebase app (safe for Next.js hot-reload) ─────────────────────
-const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+function initFirebaseApp(): FirebaseApp | null {
+  if (!firebaseConfig.apiKey) {
+    return null;
+  }
+  try {
+    return getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+  } catch (error) {
+    console.warn("[Firebase] app initialization skipped:", error);
+    return null;
+  }
+}
+
+const app = initFirebaseApp();
 
 // ── Firestore database ────────────────────────────────────────────────────────
-const db: Firestore = getFirestore(app);
+const db: Firestore | null = app ? getFirestore(app) : null;
 
 // ── Firebase Authentication ───────────────────────────────────────────────────
-const auth: Auth = getAuth(app);
+const auth: Auth | null = app ? getAuth(app) : null;
 
 // ── Analytics (client-side only, safe for SSR) ────────────────────────────────
 /**
@@ -43,7 +55,7 @@ const auth: Auth = getAuth(app);
  *   }, []);
  */
 async function getAnalyticsInstance(): Promise<Analytics | null> {
-  if (typeof window === "undefined") return null;
+  if (typeof window === "undefined" || !app) return null;
   try {
     const { getAnalytics, isSupported } = await import("firebase/analytics");
     const supported = await isSupported();

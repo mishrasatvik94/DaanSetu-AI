@@ -41,12 +41,14 @@ export type CollectionName = (typeof COLLECTIONS)[keyof typeof COLLECTIONS];
  */
 export async function initFirestoreCollections(): Promise<void> {
   if (typeof window === "undefined") return; // client only
+  if (!db) return;
+  const firestore = db;
 
   const collectionNames = Object.values(COLLECTIONS);
 
   await Promise.allSettled(
     collectionNames.map(async (collection) => {
-      const metaRef = doc(db, collection, "_meta");
+      const metaRef = doc(firestore, collection, "_meta");
       const snap = await getDoc(metaRef);
       if (!snap.exists()) {
         await setDoc(
