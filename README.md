@@ -1,11 +1,19 @@
+# DaanSetu AI
 
-  # Add tagline for DaanSetu
+DaanSetu AI is a hackathon project that improves an existing donation platform using AI, Firebase, and WhatsApp automation.
 
-  This is a code bundle for Add tagline for DaanSetu. The original project is available at https://www.figma.com/design/5Q1dUzP8VwLH5jdQiDLK3t/Add-tagline-for-DaanSetu.
+## Features
 
-  ## Running the code
+- AI-powered donor-to-NGO need matching
+- NGO need posting dashboard
+- Donor dashboard
+- Impact analytics
+- Firebase Firestore integration
+- Gemini-powered AI matching
+- Twilio WhatsApp bot support
 
-  Run `npm i` to install the dependencies.
+## Hackathon Problem Statement
 
-  Run `npm run dev` to start the development server.
-  
+PS 02: Improve an Existing Technology
+
+DaanSetu AI enhances traditional donation platforms by making donations intelligent, verified, real-time, and accessible through web and WhatsApp.
